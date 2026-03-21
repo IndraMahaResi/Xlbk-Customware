@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  category    Category
+  description String?
+  price       Float
+  image       String
+  stock       Boolean     @default(true)
+  minOrder    String?     @default("Bisa Satuan")
+  rating      Float?      @default(5.0)
+  sold        String?     @default("0")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orders      OrderItem[]
+}
+
+model Order {
+  id                  String               @id @default(cuid())
+  invoiceNumber       String               @unique
+  customerName        String
+  customerEmail       String
+  customerPhone       String
+  address             String?
+  designFile          String?
+  designNotes         String?
+  notes               String?
+  subtotal            Float
+  shippingFee         Float                @default(0)
+  total               Float
+  status              OrderStatus          @default(PENDING)
+  paymentMethod       PaymentMethod
+  paymentStatus       PaymentStatus        @default(UNPAID)
+  paymentDetails      Json? // Untuk menyimpan detail payment QRIS, BTC, USDT
+  paymentProof        String?
+  paidAt              DateTime?
+  expiredAt           DateTime
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  items               OrderItem[]
+  transactions PaymentTransaction[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+  notes     String?
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  USER
+}
+
+enum Category {
+  SOUVENIR
+  MUG
+  TUMBLER
+  TOTEBAG
+  KAOS
+  BAJU
+  LAINNYA
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  QRIS
+  BTC
+  USDT
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  VERIFIED
+  EXPIRED
+  FAILED
+}
+
+model PaymentTransaction {
+  id            String        @id @default(cuid())
+  orderId       String
+  order         Order         @relation(fields: [orderId], references: [id])
+  amount        Float
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String?        // ID dari payment gateway
+  qrCode        String?        // QR code URL
+  qrString      String?        // QR string untuk generate
+  walletAddress String?        // Wallet address untuk crypto
+  cryptoAmount  Float?         // Amount in crypto
+  cryptoCurrency String?       // BTC, USDT
+  bankName      String?        // Nama bank
+  bankAccount   String?        // Nomor rekening
+  accountName   String?        // Nama pemilik rekening
+  expiresAt     DateTime
+  paidAt        DateTime?
+  paymentProof  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
