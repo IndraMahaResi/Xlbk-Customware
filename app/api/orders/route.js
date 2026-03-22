@@ -109,11 +109,11 @@ export async function POST(request) {
     
     // Add crypto details if needed
     if (order.paymentMethod === 'BTC') {
-      paymentData.walletAddress = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+      paymentData.walletAddress = 'bc1qar9fgrkghr6v58qelc3cdjkptyw8j3gh95w24s'
       paymentData.cryptoAmount = (order.total / 1000000).toFixed(6)
       paymentData.cryptoCurrency = 'BTC'
     } else if (order.paymentMethod === 'USDT') {
-      paymentData.walletAddress = 'TXLq3Yh4Kv9XqVqQZ8qVqQZ8qVqQZ8qVqQZ8qV'
+      paymentData.walletAddress = '0xb1bFa84d196aB9F32D07F770F3c5712501d5903c'
       paymentData.cryptoAmount = (order.total / 15000).toFixed(2)
       paymentData.cryptoCurrency = 'USDT'
     } else if (order.paymentMethod === 'QRIS') {

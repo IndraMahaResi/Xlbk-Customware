@@ -3,7 +3,11 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request, { params }) {
   try {
-    const { orderId } = params
+    // 🔥 PERBAIKAN: Wajib unwrap params dengan await di Next.js 15
+    const resolvedParams = await params;
+    const { orderId } = resolvedParams;
+    
+    // Ambil URL file dari body request
     const { proofUrl } = await request.json()
 
     // Update order with payment proof
@@ -11,7 +15,7 @@ export async function POST(request, { params }) {
       where: { id: orderId },
       data: {
         paymentProof: proofUrl,
-        paymentStatus: 'PAID',
+        paymentStatus: 'PAID', // Mengubah status otomatis menjadi PAID setelah upload
         paidAt: new Date()
       }
     })

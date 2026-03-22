@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request, { params }) {
   try {
-    const { orderId } = params
+    // 🔥 REVISI: Tambahkan await
+    const { orderId } = await params;
     
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -35,7 +36,8 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   try {
-    const { orderId } = params
+    // 🔥 REVISI: Tambahkan await
+    const { orderId } = await params;
     const data = await request.json()
     
     const order = await prisma.order.update({
@@ -58,7 +60,8 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const { orderId } = params
+    // 🔥 REVISI: Tambahkan await
+    const { orderId } = await params;
     
     // First delete related order items
     await prisma.orderItem.deleteMany({

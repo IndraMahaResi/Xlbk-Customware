@@ -5,7 +5,11 @@ import {
   EyeIcon, 
   XCircleIcon,
   DocumentArrowDownIcon,
-  CheckBadgeIcon
+  CheckBadgeIcon,
+  BanknotesIcon,
+  Cog8ToothIcon,
+  CheckCircleIcon,
+  PhotoIcon // Icon tambahan untuk cek bukti
 } from '@heroicons/react/24/outline'
 
 export default function OrdersPage() {
@@ -21,7 +25,6 @@ export default function OrdersPage() {
   const fetchOrders = async () => {
     try {
       const res = await fetch('/api/orders')
-      // Fallback in case of error parsing json or no data
       if (res.ok) {
           const data = await res.json()
           setOrders(data)
@@ -47,6 +50,9 @@ export default function OrdersPage() {
       if (res.ok) {
         toast.success('Status pesanan diperbarui')
         fetchOrders()
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, status })
+        }
       }
     } catch (error) {
       toast.error('Gagal memperbarui status')
@@ -64,9 +70,59 @@ export default function OrdersPage() {
       if (res.ok) {
         toast.success('Status pembayaran diperbarui')
         fetchOrders()
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, paymentStatus })
+        }
       }
     } catch (error) {
       toast.error('Gagal memperbarui pembayaran')
+    }
+  }
+
+  // FUNGSI Tombol Quick Actions (Auto Update)
+  const handleQuickAction = async (orderId, updateData, successMessage) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      })
+
+      if (res.ok) {
+        toast.success(successMessage)
+        fetchOrders() 
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, ...updateData })
+        }
+      } else {
+        toast.error('Gagal memproses aksi cepat')
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan pada server')
+    }
+  }
+
+  // 🔥 FUNGSI BARU: Unduh Invoice oleh Admin
+  const generateInvoice = async (orderId, invoiceNumber) => {
+    try {
+      toast.loading('Menyiapkan Invoice...', { id: 'invoice-toast' })
+      const res = await fetch(`/api/orders/${orderId}/invoice`)
+      
+      if (!res.ok) throw new Error('Gagal dari server')
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Invoice_XLBK_${invoiceNumber || orderId}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      toast.success('Invoice berhasil diunduh', { id: 'invoice-toast' })
+    } catch (error) {
+      toast.error('Gagal mengunduh invoice', { id: 'invoice-toast' })
     }
   }
 
@@ -214,8 +270,8 @@ export default function OrdersPage() {
 
       {/* MODAL DETAIL PESANAN */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-slate-900/95 border border-slate-700/80 rounded-3xl p-6 md:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in fade-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 px-4 py-6">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in fade-in zoom-in-95 duration-300">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
             
             <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
@@ -237,6 +293,34 @@ export default function OrdersPage() {
             </div>
 
             <div className="space-y-6">
+
+              {/* BLOK QUICK ACTIONS (AUTO BUTTONS) */}
+              <div className="bg-slate-800/80 border border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shadow-lg">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-300 uppercase tracking-wider">
+                  <span>⚡ Quick Actions</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button 
+                    onClick={() => handleQuickAction(selectedOrder.id, { paymentStatus: 'PAID' }, 'Pesanan ditandai LUNAS!')}
+                    className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-white border border-amber-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  >
+                    <BanknotesIcon className="w-4 h-4" /> Auto Paid
+                  </button>
+                  <button 
+                    onClick={() => handleQuickAction(selectedOrder.id, { status: 'PROCESSING' }, 'Pesanan masuk tahap PROSES!')}
+                    className="flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  >
+                    <Cog8ToothIcon className="w-4 h-4" /> Auto Process
+                  </button>
+                  <button 
+                    onClick={() => handleQuickAction(selectedOrder.id, { status: 'COMPLETED', paymentStatus: 'VERIFIED' }, 'Pesanan SELESAI & LUNAS!')}
+                    className="flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  >
+                    <CheckCircleIcon className="w-4 h-4" /> Auto Complete
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Customer Info */}
                   <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-5">
@@ -251,19 +335,42 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  {/* Payment Info */}
+                  {/* Payment Info & Bukti Transfer */}
                   <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-5">
                     <h3 className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-3 flex items-center gap-2">
                         <CheckBadgeIcon className="w-4 h-4 text-emerald-400"/>
                         Info Pembayaran
                     </h3>
-                    <div className="space-y-2 text-sm">
+                    <div className="space-y-3 text-sm">
                         <p className="flex justify-between items-center"><span className="text-slate-400">Metode:</span> <span className="font-bold text-slate-200">{selectedOrder.paymentMethod}</span></p>
-                        <p className="flex justify-between items-center"><span className="text-slate-400">Status:</span> 
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400">Status Bayar:</span> 
                           <span className={`px-2 py-0.5 text-xs font-bold rounded border ${getPaymentStatusColor(selectedOrder.paymentStatus)}`}>
                             {selectedOrder.paymentStatus}
                           </span>
-                        </p>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400">Status Order:</span> 
+                          <span className={`px-2 py-0.5 text-xs font-bold rounded border ${getStatusColor(selectedOrder.status)}`}>
+                            {selectedOrder.status}
+                          </span>
+                        </div>
+
+                        {/* 🔥 TOMBOL LIHAT BUKTI TRANSFER 🔥 */}
+                        {/* Asumsi: URL bukti disimpan di tabel Order dengan field `paymentProof` atau direlasikan ke `paymentDetails.proofUrl` */}
+                        {(selectedOrder.paymentProof || selectedOrder.paymentDetails?.proofUrl) && (
+                          <div className="pt-3 mt-3 border-t border-slate-700/50 flex justify-between items-center">
+                            <span className="text-slate-400">Bukti Transfer:</span>
+                            <a 
+                              href={selectedOrder.paymentProof || selectedOrder.paymentDetails?.proofUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md hover:shadow-blue-500/20"
+                            >
+                              <PhotoIcon className="w-4 h-4" /> Cek File
+                            </a>
+                          </div>
+                        )}
                     </div>
                   </div>
               </div>
@@ -282,7 +389,6 @@ export default function OrdersPage() {
                     <h3 className="text-xs uppercase tracking-wider text-slate-400 font-bold">Item Pesanan</h3>
                 </div>
                 <div className="p-5 space-y-4">
-                    {/* HATI-HATI: Sesuaikan properti berdasarkan relasi model Anda. Biasanya `item.product.name` dll */}
                     {selectedOrder.items && selectedOrder.items.length > 0 ? selectedOrder.items.map((item, index) => (
                     <div key={index} className="flex justify-between items-start pb-4 border-b border-slate-700/50 last:border-0 last:pb-0">
                         <div>
@@ -329,12 +435,22 @@ export default function OrdersPage() {
                   )}
               </div>
 
-              {/* Total Tagihan */}
-              <div className="bg-gradient-to-r from-slate-800 to-slate-800/80 border border-slate-700 rounded-2xl p-6 flex justify-between items-center shadow-lg">
-                <span className="text-lg font-bold text-slate-300 uppercase tracking-widest">Total Tagihan</span>
-                <span className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-sky-300">
-                  Rp {Number(selectedOrder.total).toLocaleString('id-ID')}
-                </span>
+              {/* Total Tagihan & Cetak Invoice */}
+              <div className="bg-gradient-to-r from-slate-800 to-slate-800/80 border border-slate-700 rounded-2xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-lg">
+                <div>
+                  <span className="block text-lg font-bold text-slate-300 uppercase tracking-widest mb-1">Total Tagihan</span>
+                  <span className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-sky-300">
+                    Rp {Number(selectedOrder.total).toLocaleString('id-ID')}
+                  </span>
+                </div>
+                
+                {/* 🔥 TOMBOL UNDUH INVOICE 🔥 */}
+                <button
+                  onClick={() => generateInvoice(selectedOrder.id, selectedOrder.invoiceNumber)}
+                  className="flex items-center gap-2 bg-slate-900 hover:bg-slate-700 text-white border border-slate-600 px-5 py-3 rounded-xl text-sm font-bold transition-all shadow-md"
+                >
+                  <DocumentArrowDownIcon className="w-5 h-5" /> Cetak Invoice
+                </button>
               </div>
 
             </div>
