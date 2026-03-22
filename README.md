@@ -102,9 +102,3 @@ xlbk-customwear/
 │   └── schema.prisma      # Definisi Skema Database
 └── public/                # Static assets (Images, Icons)
 
-
-### Tips Tambahan Sebelum Mem-*push* ke GitHub:
-1. **Tambahkan Screenshot:** Jika Anda perhatikan di bagian *Header*, saya menyisipkan bagian untuk gambar. Anda bisa mengambil *screenshot* (*screenshot* halaman dashboard, *form order*, dan halaman struk pembayaran), lalu masukkan gambarnya ke folder Github Anda, dan tambahkan tautannya ke dalam file Markdown tersebut untuk menggantikan teks `[Tambahkan Gambar...]`.
-2. **Jangan Push `.env`:** Pastikan Anda memiliki file `.gitignore` yang mendaftar `.env` di dalamnya, agar *password* database Anda tidak bocor ke publik.
-
-Bagus sekali progres yang sudah Anda capai hingga tahap ini! Semua sistem utama sudah terhubung dengan baik. Ada yang ingin kita kerjakan selanjutnya?
