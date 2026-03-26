@@ -2,7 +2,9 @@
 import { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import ProductCard from '@/components/ProductCard'
+import TestimonialCard from '@/components/TestimonialCard'
 import Link from 'next/link'
+import Image from 'next/image'
 
 // SVG Icons untuk Kategori Produk
 const CategoryIcons = {
@@ -29,9 +31,15 @@ const CategoryIcons = {
 export default function Home() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  
+  // State untuk Testimoni
+  const [testimonials, setTestimonials] = useState([])
+  const [featuredTestimonials, setFeaturedTestimonials] = useState([])
+  const [testimonialsLoading, setTestimonialsLoading] = useState(true)
 
   useEffect(() => {
     fetchProducts()
+    fetchTestimonials()
   }, [])
 
   const fetchProducts = async () => {
@@ -39,15 +47,45 @@ export default function Home() {
       const res = await fetch('/api/products')
       const data = await res.json()
       if (data.length === 0) {
-          setProducts([]);
+          setProducts([])
       } else {
-          setProducts(data.slice(0, 6))
+          setProducts(data.slice(0, 6)) // Hanya tampilkan 6 produk di beranda
       }
     } catch (error) {
       console.error('Failed to fetch products:', error)
-      setProducts([]);
+      setProducts([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchTestimonials = async () => {
+    try {
+      const res = await fetch('/api/testimonials')
+      if (res.ok) {
+        const data = await res.json()
+        setTestimonials(data.slice(0, 6))
+      } else {
+        throw new Error('API not ready')
+      }
+      
+      const featuredRes = await fetch('/api/testimonials?featured=true')
+      if (featuredRes.ok) {
+        const featuredData = await featuredRes.json()
+        setFeaturedTestimonials(featuredData.slice(0, 3))
+      }
+    } catch (error) {
+      console.error('Failed to fetch testimonials, using fallback data:', error)
+      // Fallback Data untuk Preview jika API belum jadi
+      const mockTestimonials = [
+        { id: 1, name: 'Budi Santoso', role: 'CEO TechStartup', content: 'Kualitas sablon sangat memuaskan, warnanya keluar dan detail. Proses pesanan partai besar via USDT juga sangat lancar!', rating: 5 },
+        { id: 2, name: 'Siti Rahmawati', role: 'Event Organizer', content: 'Pesan ratusan tumbler custom untuk acara kantor. Pengerjaan cepat dan hasilnya persis seperti desain mock-up.', rating: 5 },
+        { id: 3, name: 'Andi Pratama', role: 'Clothing Brand Owner', content: 'Bahan kaos premium combed 30s-nya benar-benar terasa mahal. Jahitan rapi, tidak ada reject sama sekali.', rating: 4.8 }
+      ]
+      setFeaturedTestimonials(mockTestimonials)
+      setTestimonials([])
+    } finally {
+      setTestimonialsLoading(false)
     }
   }
 
@@ -55,30 +93,43 @@ export default function Home() {
     <>
       <Navbar />
 
-      {/* HERO SECTION - Web3 / Fintech Vibe */}
-      <section className="pt-28 pb-16 relative overflow-hidden z-10">
-        <div className="relative max-w-7xl mx-auto px-6 py-20 text-center">
+      {/* =========================================
+          HERO SECTION - Web3 / Fintech Vibe dengan Background Image
+          ========================================= */}
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden z-10 pt-20">
+        
+        {/* 🔥 PERBAIKAN: Menghapus mix-blend-luminosity dan menaikkan opacity ke 40 */}
+        <div 
+          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')" }}
+        ></div>
+        
+        {/* 🔥 PERBAIKAN: Membuat bagian tengah overlay lebih transparan (slate-950/50) */}
+        <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-950 via-slate-950/50 to-slate-950"></div>
+        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none z-0"></div>
+
+        {/* Content Hero */}
+        <div className="relative max-w-7xl mx-auto px-6 py-20 text-center z-10">
           
-          {/* Badge / Label modern dengan sentuhan Crypto */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/80 border border-blue-500/30 text-blue-400 text-sm font-medium mb-8 backdrop-blur-md shadow-[0_0_15px_rgba(37,99,235,0.15)]">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            Borderles Custom Merchandise
+            Borderless Custom Merchandise
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-blue-100 to-blue-400">
+          <h1 className="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-blue-400 drop-shadow-lg">
             Wujudkan Desainmu, <br className="hidden md:block" />
             Bayar Tanpa Batasan.
           </h1>
 
-          <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Platform cetak merchandise premium pertama yang mendukung pembayaran fiat dan <span className="text-slate-200 font-semibold">Cryptocurrency</span>. Mulai dari satuan hingga partai besar, proses cepat dan presisi.
+          <p className="text-lg md:text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
+            Platform cetak merchandise premium pertama yang mendukung pembayaran fiat dan <span className="text-white font-bold border-b border-blue-500">Cryptocurrency</span>. Mulai dari satuan hingga partai besar, proses cepat dan presisi.
           </p>
 
           <div className="flex justify-center gap-4 flex-wrap mb-10">
             <Link
               href="/products"
               className="px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 
-              transition-all duration-300 font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] flex items-center gap-2"
+              transition-all duration-300 font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] flex items-center gap-2"
             >
               Mulai Custom Sekarang
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
@@ -88,55 +139,57 @@ export default function Home() {
 
             <Link
               href="/products"
-              className="px-8 py-4 rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm
-              hover:bg-slate-700 hover:border-slate-600 text-slate-200 transition-all duration-300 font-bold"
+              className="px-8 py-4 rounded-xl border border-slate-600 bg-slate-900/60 backdrop-blur-md
+              hover:bg-slate-800 hover:border-slate-500 text-slate-200 transition-all duration-300 font-bold"
             >
               Lihat Katalog
             </Link>
           </div>
 
           {/* Supported Payments Strip */}
-          <div className="flex flex-col items-center justify-center gap-4 mb-20 opacity-80">
-            <p className="text-xs font-semibold tracking-widest text-slate-500 uppercase">Supported Payments</p>
-            <div className="flex items-center gap-6 text-slate-400">
-              {/* Bank Transfer / QRIS */}
+          <div className="flex flex-col items-center justify-center gap-4 mt-16 opacity-90">
+            <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase">Supported Payments</p>
+            <div className="flex items-center gap-6 text-slate-300 bg-slate-900/40 px-6 py-3 rounded-full backdrop-blur-sm border border-slate-800/50">
               <div className="flex items-center gap-1.5 hover:text-white transition-colors">
                 <span className="font-bold text-lg">QRIS</span>
               </div>
-              <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
-              {/* Bitcoin */}
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
               <div className="flex items-center gap-1.5 hover:text-[#F7931A] transition-colors cursor-pointer" title="Bitcoin Accepted">
                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M14.077 10.278c1.076-.23 1.884-.852 1.884-2.181 0-1.853-1.464-2.458-3.56-2.458H10.15V2h-1.87v3.639H6.942V2h-1.87v3.639H2v1.87h1.411c.883 0 1.25.437 1.25 1.118v7.243c0 .351-.122.846-1.01.846H2v1.87h3.082v3.744h1.87v-3.744h1.338v3.744h1.87v-3.744c2.616 0 4.316-.763 4.316-3.085 0-1.503-1.042-2.441-2.399-2.614zm-2.584-2.903h1.498c.845 0 1.543.344 1.543 1.157 0 .863-.787 1.178-1.543 1.178h-1.498V7.375zm1.751 7.424h-1.751v-2.348h1.751c.969 0 1.77.382 1.77 1.222 0 .839-.81 1.126-1.77 1.126z"/></svg>
                 <span className="font-bold text-lg tracking-wide">BTC</span>
               </div>
-              <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
-              {/* USDT Tether */}
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
               <div className="flex items-center gap-1.5 hover:text-[#26A17B] transition-colors cursor-pointer" title="Tether USDT Accepted">
                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 24c6.627 0 12-5.373 12-12S18.627 0 12 0 0 5.373 0 12s5.373 12 12 12zM13.682 10.42v6.23h-3.364v-6.23H6.077V7.124h11.846v3.296h-4.241z"/></svg>
                 <span className="font-bold text-lg tracking-wide">USDT</span>
               </div>
             </div>
           </div>
-
-          {/* STATS - Glassmorphism Cards (Updated Copy) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto text-center">
-            {[
-              { num: 'Fleksibel', label: 'Bebas Minimum Order', desc: 'Satu pcs pun kami kerjakan dengan kualitas terbaik.' },
-              { num: 'Secure Pay', label: 'Crypto & Fiat Ready', desc: 'Transaksi aman, cepat, dan transparan via USDT/BTC.' },
-              { num: 'Presisi', label: 'Quality Control Ketat', desc: 'Hasil cetak tajam sesuai dengan desain asli Anda.' }
-            ].map((stat, idx) => (
-              <div key={idx} className="p-6 rounded-2xl bg-slate-800/30 border border-slate-700/50 backdrop-blur-md hover:bg-slate-800/50 transition-colors">
-                <h3 className="text-2xl font-bold text-slate-100 mb-1">{stat.num}</h3>
-                <p className="text-blue-400 font-semibold text-sm uppercase tracking-wider mb-2">{stat.label}</p>
-                <p className="text-slate-400 text-sm">{stat.desc}</p>
-              </div>
-            ))}
-          </div>
-
         </div>
       </section>
 
-      {/* CATEGORIES SECTION */}
+      {/* =========================================
+          STATS SECTION
+          ========================================= */}
+      <section className="relative z-20 -mt-16 mb-24 px-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto text-center">
+          {[
+            { num: 'Fleksibel', label: 'Bebas Minimum Order', desc: 'Satu pcs pun kami kerjakan dengan kualitas terbaik.' },
+            { num: 'Secure Pay', label: 'Crypto & Fiat Ready', desc: 'Transaksi aman, cepat, dan transparan via USDT/BTC.' },
+            { num: 'Presisi', label: 'Quality Control Ketat', desc: 'Hasil cetak tajam sesuai dengan desain asli Anda.' }
+          ].map((stat, idx) => (
+            <div key={idx} className="p-8 rounded-3xl bg-slate-900/80 border border-slate-700/80 backdrop-blur-xl shadow-2xl hover:-translate-y-1 hover:border-blue-500/30 transition-all duration-300">
+              <h3 className="text-2xl font-extrabold text-slate-100 mb-2">{stat.num}</h3>
+              <p className="text-blue-400 font-bold text-sm uppercase tracking-wider mb-3">{stat.label}</p>
+              <p className="text-slate-400 text-sm leading-relaxed">{stat.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* =========================================
+          CATEGORIES SECTION
+          ========================================= */}
       <section className="py-24 relative z-10 border-t border-slate-800/50 bg-slate-900/10">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col items-center mb-14">
@@ -145,7 +198,7 @@ export default function Home() {
             </h2>
             <div className="w-20 h-1 bg-blue-600 rounded-full"></div>
             <p className="mt-4 text-slate-400 text-center max-w-xl">
-                Dari apparel premium hingga souvenir eksklusif. Siapkan desain Anda dan biarkan kami yang mengeksekusinya.
+              Dari apparel premium hingga souvenir eksklusif. Siapkan desain Anda dan biarkan kami yang mengeksekusinya.
             </p>
           </div>
 
@@ -169,7 +222,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURED PRODUCTS SECTION */}
+      {/* =========================================
+          FEATURED PRODUCTS SECTION
+          ========================================= */}
       <section className="py-24 relative z-10 border-t border-slate-800/50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col items-center mb-14">
@@ -184,11 +239,21 @@ export default function Home() {
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <>
+              {products.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {products.map((product) => (
+                    <div key={product.id} className="h-full">
+                       <ProductCard product={product} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-slate-500">Belum ada produk yang tersedia.</p>
+                </div>
+              )}
+            </>
           )}
 
           <div className="text-center mt-16">
@@ -207,7 +272,84 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA SECTION - Crypto Focused Card */}
+      {/* =========================================
+          TESTIMONIALS SECTION
+          ========================================= */}
+      <section className="py-24 relative z-10 border-t border-slate-800/50 bg-slate-900/20">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col items-center mb-14">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium mb-4">
+              <span className="text-lg">⭐</span>
+              Testimoni Pelanggan
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-100 mb-4">
+              Apa Kata Mereka?
+            </h2>
+            <div className="w-20 h-1 bg-blue-600 rounded-full"></div>
+            <p className="mt-4 text-slate-400 text-center max-w-xl">
+              Lebih dari 1000+ pelanggan puas dengan layanan custom printing kami.
+            </p>
+          </div>
+
+          {/* Featured Testimonials (Highlight) */}
+          {featuredTestimonials.length > 0 && (
+            <div className="mb-12">
+              <h3 className="text-xl font-semibold text-slate-200 mb-6 text-center">
+                🌟 Testimoni Unggulan
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {featuredTestimonials.map((testimonial) => (
+                  <TestimonialCard 
+                    key={testimonial.id} 
+                    testimonial={testimonial} 
+                    featured={true}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* All Testimonials Grid */}
+          {testimonialsLoading ? (
+            <div className="flex justify-center items-center h-40">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : testimonials.length > 0 ? (
+            <>
+              <h3 className="text-xl font-semibold text-slate-200 mb-6 text-center">
+                Testimoni Lainnya
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {testimonials.map((testimonial) => (
+                  <TestimonialCard 
+                    key={testimonial.id} 
+                    testimonial={testimonial}
+                  />
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {/* Add Testimonial Button */}
+          <div className="text-center mt-12">
+            <Link
+              href="/submit-testimonial"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-700 bg-slate-800/30
+              text-slate-300 hover:bg-blue-600 hover:border-blue-500 hover:text-white
+              transition-all duration-300 font-medium"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Berikan Testimoni
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================
+          CTA SECTION - Crypto Focused Card
+          ========================================= */}
       <section className="py-24 relative z-10 px-6 border-t border-slate-800/50 bg-slate-900/20">
         <div className="max-w-5xl mx-auto">
           <div className="relative rounded-3xl overflow-hidden bg-slate-800/50 border border-slate-700/50 p-10 md:p-16 text-center shadow-2xl backdrop-blur-sm">

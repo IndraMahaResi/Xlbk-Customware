@@ -136,3 +136,18 @@ model PaymentTransaction {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  role        String?   // Posisi/jabatan (optional)
+  message     String
+  rating      Int      @default(5) // 1-5
+  image       String?   // Foto customer
+  productName String?   // Nama produk yang dibeli
+  isApproved  Boolean  @default(false) // Perlu approve dulu
+  isFeatured  Boolean  @default(false) // Testimoni unggulan
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -1,10 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
   CubeIcon,
-  ClockIcon, // Mengganti UserGroupIcon dengan Clock untuk merepresentasikan "Pending"
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon
 } from '@heroicons/react/24/outline'
 
 export default function Dashboard() {
@@ -14,6 +17,7 @@ export default function Dashboard() {
     totalProducts: 0,
     pendingOrders: 0,
   })
+  const [recentOrders, setRecentOrders] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -22,17 +26,19 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Nantinya ini akan mengambil data dari database Anda melalui API
-      const [ordersRes, productsRes] = await Promise.all([
-        fetch('/api/orders').catch(() => ({ json: () => [] })),
-        fetch('/api/products').catch(() => ({ json: () => [] }))
-      ])
+      // Menggunakan try-catch individu untuk tiap fetch agar tidak saling menjatuhkan
+      const fetchOrders = fetch('/api/orders').then(res => res.ok ? res.json() : []).catch(() => [])
+      const fetchProducts = fetch('/api/products').then(res => res.ok ? res.json() : []).catch(() => [])
 
-      const orders = await ordersRes.json() || []
-      const products = await productsRes.json() || []
+      const [ordersData, productsData] = await Promise.all([fetchOrders, fetchProducts])
 
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0)
-      const pendingOrders = orders.filter(o => o.status === 'PENDING').length
+      // Pastikan data selalu array
+      const orders = Array.isArray(ordersData) ? ordersData : []
+      const products = Array.isArray(productsData) ? productsData : []
+
+      // Hitung statistik dengan aman
+      const totalRevenue = orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0)
+      const pendingOrders = orders.filter(o => o.status === 'PENDING' || o.isApproved === false).length
 
       setStats({
         totalOrders: orders.length,
@@ -40,9 +46,12 @@ export default function Dashboard() {
         totalProducts: products.length,
         pendingOrders,
       })
+
+      setRecentOrders(orders.slice(0, 5))
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error)
+      console.error('Dashboard Data Error:', error)
     } finally {
+      // PENTING: Loading HARUS dimatikan apa pun yang terjadi
       setLoading(false)
     }
   }
@@ -78,67 +87,74 @@ export default function Dashboard() {
     },
   ]
 
+  const getStatusBadge = (status) => {
+    const badges = {
+      PENDING: <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 w-fit"><ClockIcon className="w-3 h-3"/> PENDING</span>,
+      COMPLETED: <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 w-fit"><CheckCircleIcon className="w-3 h-3"/> SELESAI</span>,
+      CANCELLED: <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 w-fit"><XCircleIcon className="w-3 h-3"/> BATAL</span>
+    }
+    return badges[status] || badges.PENDING
+  }
+
   return (
-    <div className="max-w-7xl mx-auto">
-      
-      {/* Header */}
+    <div className="animate-in fade-in duration-700">
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Ringkasan Dashboard</h1>
-        <p className="text-slate-400 mt-2">Pantau performa bisnis customwear Anda hari ini.</p>
+        <h1 className="text-3xl font-bold text-white tracking-tight">Ringkasan Dashboard</h1>
+        <p className="text-slate-400 mt-1 text-sm">Selamat datang kembali! Berikut adalah ringkasan bisnis Anda.</p>
       </div>
 
-      {/* Stats Grid - Glassmorphism Style */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {cards.map((card) => (
-          <div 
-            key={card.name} 
-            className={`group bg-slate-800/40 border border-slate-700/50 backdrop-blur-md rounded-2xl p-6 transition-all duration-300 ${card.glowClass} hover:-translate-y-1`}
-          >
-            <div className="flex items-center gap-5">
-              <div className={`p-4 rounded-xl border ${card.colorClass} transition-colors`}>
-                <card.icon className="h-7 w-7" />
+          <div key={card.name} className="group bg-slate-900/40 border border-slate-800 backdrop-blur-xl rounded-2xl p-6 transition-all hover:-translate-y-1">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-xl border ${card.colorClass}`}>
+                <card.icon className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-400 mb-1">{card.name}</p>
-                {loading ? (
-                  <div className="h-8 w-24 bg-slate-700/50 rounded animate-pulse"></div>
-                ) : (
-                  <p className="text-2xl font-bold text-slate-100 tracking-tight">{card.value}</p>
-                )}
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{card.name}</p>
+                <p className="text-xl font-bold text-white mt-1">{card.value}</p>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Recent Orders Section */}
-      <div className="bg-slate-800/30 border border-slate-700/50 backdrop-blur-md rounded-2xl overflow-hidden shadow-2xl">
-        <div className="p-6 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/50">
-          <h2 className="text-xl font-bold text-slate-100">Pesanan Terbaru</h2>
-          <button className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-500/10">
-            Lihat Semua
-          </button>
+      <div className="bg-slate-900/40 border border-slate-800 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl">
+        <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/20">
+          <h2 className="text-lg font-bold text-white">Pesanan Terbaru</h2>
+          <Link href="/dashboard/orders" className="text-xs font-bold text-blue-400 hover:text-blue-300">Lihat Semua</Link>
         </div>
         
-        <div className="p-10">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-10">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-              <p className="text-slate-400 font-medium animate-pulse">Memuat pesanan terbaru...</p>
-            </div>
+        <div className="overflow-x-auto">
+          {recentOrders.length > 0 ? (
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-800/50 text-slate-400 text-[10px] uppercase font-bold border-b border-slate-800">
+                <tr>
+                  <th className="px-6 py-4">Invoice</th>
+                  <th className="px-6 py-4">Pelanggan</th>
+                  <th className="px-6 py-4 text-right">Total</th>
+                  <th className="px-6 py-4 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50">
+                {recentOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-6 py-4 font-mono text-blue-400">#{order.id.slice(-6).toUpperCase()}</td>
+                    <td className="px-6 py-4 font-medium text-slate-200">{order.customerName || 'Guest'}</td>
+                    <td className="px-6 py-4 text-right text-slate-300 font-bold">Rp {Number(order.total).toLocaleString('id-ID')}</td>
+                    <td className="px-6 py-4 flex justify-center">{getStatusBadge(order.status)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ) : (
-            // Placeholder sebelum ada data orders
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 bg-slate-800/80 rounded-full flex items-center justify-center border border-slate-700 mb-4">
-                <ShoppingCartIcon className="h-8 w-8 text-slate-500" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-300 mb-1">Belum ada pesanan masuk</h3>
-              <p className="text-slate-500 text-sm">Pesanan baru akan muncul di sini secara otomatis.</p>
+            <div className="py-20 text-center">
+              <ShoppingCartIcon className="h-10 w-10 text-slate-700 mx-auto mb-3" />
+              <p className="text-slate-500 text-sm font-medium">Belum ada pesanan masuk hari ini.</p>
             </div>
           )}
         </div>
       </div>
-
     </div>
   )
 }

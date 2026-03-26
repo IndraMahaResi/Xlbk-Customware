@@ -19,31 +19,30 @@ export default function RootLayout({ children }) {
     <html lang="id">
       <body
         className={`${inter.className} 
-        bg-[#0B1120] /* Latar belakang biru tua pekat ala Fintech */
-        bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#111827] via-[#0B1120] to-[#020617]
+        bg-slate-950 /* 🔥 PERBAIKAN: Gunakan warna solid agar menyatu dengan Hero fade */
         text-slate-100 min-h-screen flex flex-col 
         antialiased selection:bg-blue-600 selection:text-white`}
       >
 
         {/* Decorative Background - Fintech / Modern E-commerce Vibe */}
-        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
           {/* Top subtle glow */}
           <div className="absolute -top-40 left-1/2 -translate-x-1/2 
           w-[800px] h-[500px] 
           bg-blue-600/10 
           rounded-full 
-          blur-[100px]"></div>
+          blur-[120px]"></div>
 
           {/* Bottom corner accent */}
           <div className="absolute -bottom-32 -right-32 
           w-[600px] h-[600px] 
           bg-indigo-600/10 
           rounded-full 
-          blur-[120px]"></div>
+          blur-[150px]"></div>
         </div>
 
         {/* Main Content Wrapper */}
-        <main className="relative z-0 flex-grow flex flex-col">
+        <main className="relative z-10 flex-grow flex flex-col">
           {children}
         </main>
 
@@ -55,18 +54,24 @@ export default function RootLayout({ children }) {
           position="top-center"
           toastOptions={{
             style: {
-              borderRadius: '8px',
-              background: '#1E293B', // slate-800
-              color: '#F8FAFC', // slate-50
-              border: '1px solid #334155', // slate-700
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3)',
+              borderRadius: '12px', // Sedikit lebih melengkung agar modern
+              background: '#0f172a', // slate-900
+              color: '#f8fafc', // slate-50
+              border: '1px solid #1e293b', // slate-800
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.5)',
               fontSize: '14px',
-              fontWeight: '500',
+              fontWeight: '600',
             },
             success: {
               iconTheme: {
-                primary: '#3B82F6', // blue-500
-                secondary: '#1E293B',
+                primary: '#10b981', // emerald-500 (Lebih cocok untuk sukses di dark mode)
+                secondary: '#0f172a',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#f43f5e', // rose-500
+                secondary: '#0f172a',
               },
             },
           }}
