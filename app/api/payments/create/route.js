@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
-import { generateQRIS, generateCryptoPayment, generateBankPayment } from '@/lib/paymentGateway'
+import { generateQRIS, generateCryptoPayment, generateBankPayment } from '../../../lib/paymentGateway'
 
 export async function POST(request) {
   try {
