@@ -28,6 +28,14 @@ export async function POST(request) {
         { status: 400 }
       )
     }
+
+    // 🔥 PERBAIKAN UTAMA: Paksa semua nominal menjadi format Angka (Number)
+    const subtotalFixed = Number(data.subtotal) || 0;
+    const totalFixed = Number(data.total) || 0;
+
+    // 🟢 Hitung nominal yang harus dibayar saat ini (Full atau DP 50%)
+    const paymentType = data.paymentType || 'FULL'
+    const amountToPay = paymentType === 'DP' ? (totalFixed / 2) : totalFixed
     
     // Create order with invoice number
     const order = await prisma.order.create({
@@ -37,19 +45,30 @@ export async function POST(request) {
         customerEmail: data.customerEmail,
         customerPhone: data.customerPhone,
         address: data.address,
+        
+        // Menangkap data Asal Negara dan Status Khusus dari Frontend
+        countryOrigin: data.countryOrigin || 'Indonesia', 
+        status: data.status || 'PENDING',
+        
+        // 🟢 Simpan tipe pembayaran ke database
+        paymentType: paymentType,
+        
         designFile: data.designFile,
         designNotes: data.designNotes,
         notes: data.notes,
-        subtotal: data.subtotal,
-        total: data.total,
+        
+        // 🔥 Gunakan nilai Angka yang sudah dikonversi
+        subtotal: subtotalFixed,
+        total: totalFixed,
+        
         paymentMethod: data.paymentMethod,
         paymentStatus: 'UNPAID',
         expiredAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours expiry
         items: {
           create: data.items.map(item => ({
             productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
+            quantity: Number(item.quantity) || 1, // 🔥 Paksa jadi angka
+            price: Number(item.price) || 0,       // 🔥 Paksa jadi angka
             notes: item.notes
           }))
         }
@@ -66,7 +85,7 @@ export async function POST(request) {
     // Create payment transaction
     let paymentData = {
       orderId: order.id,
-      amount: order.total,
+      amount: amountToPay, // Tagihan awal menggunakan amountToPay (50% atau 100%)
       method: order.paymentMethod,
       status: 'PENDING',
       expiresAt: order.expiredAt
@@ -75,13 +94,11 @@ export async function POST(request) {
     // Generate crypto payment details if needed
     if (order.paymentMethod === 'BTC') {
       paymentData.walletAddress = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
-      // 🔥 REVISI: Bungkus dengan parseFloat agar kembali jadi Float/Number
-      paymentData.cryptoAmount = parseFloat((order.total / 1000000).toFixed(6)) 
+      paymentData.cryptoAmount = parseFloat((amountToPay / 1000000).toFixed(6)) 
       paymentData.cryptoCurrency = 'BTC'
     } else if (order.paymentMethod === 'USDT') {
       paymentData.walletAddress = 'TXLq3Yh4Kv9XqVqQZ8qVqQZ8qVqQZ8qVqQZ8qV'
-      // 🔥 REVISI: Bungkus dengan parseFloat agar kembali jadi Float/Number
-      paymentData.cryptoAmount = parseFloat((order.total / 15000).toFixed(2)) 
+      paymentData.cryptoAmount = parseFloat((amountToPay / 15000).toFixed(2)) 
       paymentData.cryptoCurrency = 'USDT'
     } else if (order.paymentMethod === 'QRIS') {
       // Generate QR code
@@ -96,7 +113,8 @@ export async function POST(request) {
       success: true,
       orderId: order.id,
       invoiceNumber: order.invoiceNumber,
-      total: order.total
+      total: order.total,
+      amountToPay: amountToPay // Kirim nominal yang harus dibayar saat ini ke frontend
     })
   } catch (error) {
     console.error('Order creation error:', error)

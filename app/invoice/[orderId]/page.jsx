@@ -7,7 +7,10 @@ import {
   PrinterIcon,
   ArrowLeftIcon,
   DocumentTextIcon,
-  ArrowTopRightOnSquareIcon
+  ArrowTopRightOnSquareIcon,
+  MapPinIcon,
+  EnvelopeIcon,
+  PhoneIcon
 } from '@heroicons/react/24/outline'
 
 export default function InvoicePage() {
@@ -27,7 +30,7 @@ export default function InvoicePage() {
     try {
       const res = await fetch(`/api/orders/${params.orderId}`)
       const data = await res.json()
-      setOrder(data)
+      setOrder(data.order || data) 
     } catch (error) {
       console.error('Failed to fetch order:', error)
       toast.error('Gagal memuat invoice')
@@ -61,23 +64,32 @@ export default function InvoicePage() {
 
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
+      day: '2-digit',
+      month: 'short',
       year: 'numeric'
     })
   }
 
-  const getStatusStamp = (status) => {
-    const isPaid = status === 'PAID' || status === 'VERIFIED'
-    if (isPaid) {
+  // LOGIKA STEMPEL KORPORAT
+  const getCorporateStamp = (status, paymentType) => {
+    if (status === 'PAID') {
       return (
-        <div className="inline-block border-2 border-emerald-600 text-emerald-600 px-4 py-1.5 rounded-sm text-sm font-black uppercase tracking-widest transform -rotate-2">
+        <div className="inline-block border-4 border-emerald-700 text-emerald-700 px-5 py-2 text-2xl font-black uppercase tracking-[0.2em] transform -rotate-6 opacity-90 rounded">
           LUNAS
         </div>
       )
     }
+    
+    if (paymentType === 'DP' && status === 'VERIFIED') {
+      return (
+        <div className="inline-block border-4 border-blue-700 text-blue-700 px-5 py-2 text-xl font-black uppercase tracking-[0.1em] transform -rotate-6 opacity-90 rounded">
+          DP DITERIMA (50%)
+        </div>
+      )
+    }
+
     return (
-      <div className="inline-block border-2 border-rose-500 text-rose-500 px-4 py-1.5 rounded-sm text-sm font-black uppercase tracking-widest transform -rotate-2">
+      <div className="inline-block border-4 border-rose-700 text-rose-700 px-5 py-2 text-xl font-black uppercase tracking-[0.1em] transform -rotate-6 opacity-90 rounded">
         BELUM DIBAYAR
       </div>
     )
@@ -86,10 +98,7 @@ export default function InvoicePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-slate-900"></div>
-          <p className="text-slate-500 font-medium tracking-wide">Membuka dokumen...</p>
-        </div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-slate-900"></div>
       </div>
     )
   }
@@ -97,14 +106,10 @@ export default function InvoicePage() {
   if (!order) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <div className="text-center max-w-md w-full bg-white p-10 rounded-xl shadow-sm border border-slate-200">
-          <DocumentTextIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+        <div className="text-center max-w-md w-full bg-white p-10 rounded-lg shadow border border-slate-200">
           <h2 className="text-xl font-bold text-slate-800 mb-2">Dokumen Tidak Ditemukan</h2>
-          <p className="text-slate-500 mb-8">Invoice yang Anda cari mungkin telah dihapus atau ID tidak valid.</p>
-          <button
-            onClick={() => router.push('/products')}
-            className="w-full bg-slate-900 text-white px-6 py-3 rounded-lg font-bold hover:bg-slate-800 transition-colors"
-          >
+          <p className="text-slate-500 mb-6">Invoice yang Anda cari tidak tersedia.</p>
+          <button onClick={() => router.push('/')} className="bg-slate-900 text-white px-6 py-2.5 rounded font-medium hover:bg-slate-800 transition-colors">
             Kembali ke Beranda
           </button>
         </div>
@@ -112,236 +117,276 @@ export default function InvoicePage() {
     )
   }
 
+  // 🟢 LOGIKA CERDAS: KALKULASI UANG MASUK & SISA TAGIHAN
+  const isDP = order.paymentType === 'DP';
+  const totalBiaya = order.total || 0;
+  const uangMuka = isDP ? totalBiaya / 2 : totalBiaya;
+  
+  let totalPembayaranMasuk = 0;
+  if (order.paymentStatus === 'PAID') {
+    totalPembayaranMasuk = totalBiaya;
+  } else if (order.paymentStatus === 'VERIFIED' && isDP) {
+    totalPembayaranMasuk = uangMuka;
+  }
+  
+  const sisaTagihan = totalBiaya - totalPembayaranMasuk;
+
   return (
-    <div className="min-h-screen bg-slate-100 py-10 px-4 sm:px-6 lg:px-8 print:bg-white print:py-0 print:px-0">
-      <div className="max-w-4xl mx-auto">
-        
-        {/* --- CONTROL BAR (Sembunyi saat dicetak) --- */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 print:hidden">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-all w-full sm:w-auto justify-center"
-          >
-            <ArrowLeftIcon className="h-4 w-4" /> Kembali
-          </button>
-          
-          <div className="flex gap-3 w-full sm:w-auto">
-            <button
-              onClick={printInvoice}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-all"
-            >
-              <PrinterIcon className="h-4 w-4" /> Cetak Dokumen
-            </button>
-            <button
-              onClick={downloadPDF}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-lg shadow-md hover:bg-slate-800 transition-all"
-            >
-              <DocumentArrowDownIcon className="h-4 w-4" /> Unduh PDF
-            </button>
-          </div>
-        </div>
-
-        {/* --- KERTAS INVOICE UTAMA --- */}
-        <div 
-          ref={invoiceRef} 
-          className="bg-white shadow-2xl print:shadow-none print:border-none border border-slate-200 relative overflow-hidden"
+    <div className="min-h-screen bg-slate-100 py-10 px-4 sm:px-6 lg:px-8 print:bg-transparent print:py-0 print:px-0 flex flex-col items-center">
+      
+      {/* --- CONTROL BAR --- */}
+      <div className="w-full max-w-[850px] flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 print:hidden">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded shadow-sm hover:bg-slate-50 transition-all w-full sm:w-auto justify-center"
         >
-          {/* Aksen warna minimalis di atas */}
-          <div className="h-2 w-full bg-slate-900 print:bg-black"></div>
+          <ArrowLeftIcon className="h-4 w-4" /> Kembali
+        </button>
+        
+        <div className="flex gap-3 w-full sm:w-auto">
+          <button
+            onClick={printInvoice}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded shadow-sm hover:bg-slate-50 transition-all"
+          >
+            <PrinterIcon className="h-4 w-4" /> Cetak
+          </button>
+          <button
+            onClick={downloadPDF}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-slate-900 rounded shadow hover:bg-slate-800 transition-all"
+          >
+            <DocumentArrowDownIcon className="h-4 w-4" /> Unduh PDF
+          </button>
+        </div>
+      </div>
 
-          {/* Watermark Logo (Opsional, sangat transparan di background) */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[200px] font-black text-slate-50 opacity-50 pointer-events-none select-none z-0 print:opacity-30">
-            X
-          </div>
+      {/* --- KERTAS INVOICE UTAMA --- */}
+      <div 
+        ref={invoiceRef} 
+        className="w-full max-w-[850px] min-h-[1100px] bg-white shadow-2xl print:shadow-none print:w-full relative mx-auto"
+      >
+        {/* Garis Aksen Kop Surat */}
+        <div className="h-3 w-full bg-slate-900"></div>
 
-          <div className="p-10 sm:p-16 relative z-10">
-            
-            {/* HEADER: KOP SURAT */}
-            <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-16">
-              <div className="flex-1">
-                <div className="text-4xl font-black tracking-tighter text-slate-900 mb-1">
-                  XLBK<span className="text-blue-600">.</span>
-                </div>
-                <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-4">Customwear & Printing</p>
-                <div className="text-sm text-slate-600 leading-relaxed space-y-1">
-                  <p>Jl. Contoh Perusahaan No. 123</p>
-                  <p>Jakarta Selatan, 12345, Indonesia</p>
-                  <p className="mt-2 text-slate-800 font-medium">hello@xlbkcustom.com | +62 812 3456 7890</p>
-                </div>
+        <div className="p-12 sm:p-16">
+          
+          {/* HEADER: KOP SURAT */}
+          <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-16">
+            <div className="flex-1">
+              <div className="text-4xl font-black tracking-tighter text-slate-900 mb-1">
+                XLBK<span className="text-slate-400">.</span>
               </div>
-
-              <div className="md:text-right flex flex-col md:items-end">
-                <h1 className="text-5xl font-light tracking-widest text-slate-300 uppercase mb-2">Invoice</h1>
-                <p className="text-lg font-bold text-slate-900 font-mono tracking-tight mb-6">#{order.invoiceNumber}</p>
-                
-                <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-left md:text-right">
-                  <div className="text-slate-500">Tanggal Terbit:</div>
-                  <div className="font-semibold text-slate-900">{formatDate(order.createdAt)}</div>
-                  
-                  <div className="text-slate-500">Jatuh Tempo:</div>
-                  <div className="font-semibold text-slate-900">
-                    {order.payment?.expiresAt ? formatDate(order.payment.expiresAt) : 'Saat Diterima'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* SEPARATOR */}
-            <div className="border-t-2 border-slate-100 mb-10"></div>
-
-            {/* INFO PELANGGAN & STATUS */}
-            <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-12">
-              <div className="flex-1">
-                <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-3">Ditagihkan Kepada:</p>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{order.customerName}</h3>
-                <div className="text-sm text-slate-600 leading-relaxed space-y-1">
-                  <p>{order.customerEmail}</p>
-                  <p>{order.customerPhone}</p>
-                  {order.address && <p className="pt-2 max-w-sm">{order.address}</p>}
-                </div>
-              </div>
-
-              <div className="flex-1 md:text-right">
-                <div className="mb-4">
-                  {getStatusStamp(order.paymentStatus)}
-                </div>
-                <div className="text-sm">
-                  <p className="text-slate-500 mb-1">Metode Pembayaran:</p>
-                  <p className="font-bold text-slate-900">
-                    {order.paymentMethod === 'BANK_TRANSFER' ? 'Transfer Bank' : order.paymentMethod}
-                  </p>
-                  {order.paidAt && (
-                    <p className="text-slate-500 mt-2 text-xs">
-                      Telah dibayar pada {formatDate(order.paidAt)}
-                    </p>
-                  )}
-                </div>
+              <p className="text-[11px] font-bold tracking-[0.25em] text-slate-500 uppercase mb-4">Customwear & Printing</p>
+              
+              <div className="text-sm text-slate-600 leading-relaxed font-medium">
+                <p>Jl. Albasia 3 Perum Papan Indah No. 29</p>
+                <p>RT 09/RW 09, Mangunjaya, Tambun Selatan</p>
+                <p>Kab. Bekasi, Jawa Barat</p>
+                <p className="mt-2 text-slate-900">+62 812 8343 3771 &nbsp;|&nbsp; xlbk.customwear@gmail.com</p>
               </div>
             </div>
 
-            {/* TABEL RINCIAN BIAYA */}
-            <div className="mb-10">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b-2 border-slate-900 text-slate-900">
-                    <th className="py-3 px-2 font-bold uppercase tracking-wider text-xs">Deskripsi</th>
-                    <th className="py-3 px-2 font-bold uppercase tracking-wider text-xs text-center w-24">Qty</th>
-                    <th className="py-3 px-2 font-bold uppercase tracking-wider text-xs text-right w-36">Harga Satuan</th>
-                    <th className="py-3 px-2 font-bold uppercase tracking-wider text-xs text-right w-40">Subtotal</th>
+            <div className="md:text-right flex flex-col md:items-end">
+              <h1 className="text-5xl font-light tracking-widest text-slate-300 uppercase mb-2">Invoice</h1>
+              <p className="text-xl font-semibold text-slate-900 tracking-tight mb-8">#{order.invoiceNumber}</p>
+              
+              <table className="text-sm text-left md:text-right">
+                <tbody>
+                  <tr>
+                    <td className="text-slate-500 pr-6 py-1 font-medium">Tanggal Terbit</td>
+                    <td className="font-bold text-slate-900">{formatDate(order.createdAt)}</td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {order.items?.map((item, index) => (
-                    <tr key={index} className="text-slate-700">
-                      <td className="py-4 px-2">
-                        <p className="font-bold text-slate-900">{item.product.name}</p>
-                        {item.notes && (
-                          <p className="text-xs text-slate-500 mt-1">Note: {item.notes}</p>
-                        )}
-                      </td>
-                      <td className="py-4 px-2 text-center">{item.quantity}</td>
-                      <td className="py-4 px-2 text-right text-slate-500">
-                        Rp {item.price.toLocaleString('id-ID')}
-                      </td>
-                      <td className="py-4 px-2 text-right font-semibold text-slate-900">
-                        Rp {(item.price * item.quantity).toLocaleString('id-ID')}
-                      </td>
-                    </tr>
-                  ))}
+                  <tr>
+                    <td className="text-slate-500 pr-6 py-1 font-medium">Jatuh Tempo</td>
+                    <td className="font-bold text-slate-900">
+                      {order.payment?.expiresAt ? formatDate(order.payment.expiresAt) : 'Saat Diterima'}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
+          </div>
 
-            {/* KALKULASI TOTAL */}
-            <div className="flex flex-col md:flex-row justify-between items-start gap-10">
-              
-              {/* Kolom Kiri: Catatan Tambahan & Lampiran */}
-              <div className="w-full md:w-1/2 space-y-6">
-                {order.notes && (
-                  <div>
-                    <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-2">Catatan Pesanan</p>
-                    <p className="text-sm text-slate-600 italic border-l-2 border-slate-200 pl-3 py-1">
-                      "{order.notes}"
-                    </p>
-                  </div>
-                )}
+          <div className="border-t-2 border-slate-900 mb-12"></div>
 
-                {order.designFile && (
-                  <div className="print:hidden">
-                    <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-2">Lampiran File Desain</p>
-                    <a 
-                      href={order.designFile} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded transition-colors"
-                    >
-                      <ArrowTopRightOnSquareIcon className="w-4 h-4 text-slate-500" /> Buka Desain
-                    </a>
-                  </div>
-                )}
+          {/* INFO TAGIHAN & STEMPEL */}
+          <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-12 relative">
+            
+            <div className="absolute right-0 md:right-10 top-10 md:-top-5 z-0 pointer-events-none opacity-90 print:opacity-100 mix-blend-multiply">
+               {getCorporateStamp(order.paymentStatus, order.paymentType)}
+            </div>
+
+            <div className="flex-1 relative z-10">
+              <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-3">Ditagihkan Kepada:</p>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">{order.customerName}</h3>
+              <div className="text-sm text-slate-600 font-medium leading-relaxed">
+                <p>{order.customerEmail}</p>
+                <p>{order.customerPhone}</p>
+                {order.address && <p className="mt-2 max-w-sm text-slate-500">{order.address}</p>}
               </div>
+            </div>
 
-              {/* Kolom Kanan: Rincian Angka */}
-              <div className="w-full md:w-1/3 min-w-[280px]">
-                <div className="space-y-3 text-sm text-slate-600 mb-4 px-2">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span className="font-semibold text-slate-900">Rp {order.subtotal?.toLocaleString('id-ID')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Biaya Pengiriman</span>
-                    <span className="font-semibold text-slate-900">Rp {order.shippingFee?.toLocaleString('id-ID') || 0}</span>
-                  </div>
+            <div className="flex-1 md:text-right relative z-10 mt-6 md:mt-0">
+              <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-3">Informasi Pembayaran:</p>
+              <div className="text-sm text-slate-600 font-medium space-y-1">
+                <p>Metode: <span className="font-bold text-slate-900">{order.paymentMethod === 'BANK_TRANSFER' ? 'Transfer Bank' : order.paymentMethod}</span></p>
+                <p>Sistem: <span className="font-bold text-slate-900">{isDP ? 'Uang Muka (DP 50%)' : 'Pembayaran Penuh'}</span></p>
+              </div>
+            </div>
+          </div>
+
+          {/* TABEL RINCIAN BIAYA */}
+          <div className="mb-10 overflow-hidden rounded-2xl border border-slate-200">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="border-y-2 border-slate-900 bg-slate-50/50">
+                  <th className="py-4 px-6 font-bold text-slate-900 uppercase tracking-wider text-xs">Deskripsi Item</th>
+                  <th className="py-4 px-6 font-bold text-slate-900 uppercase tracking-wider text-xs text-center w-24">Qty</th>
+                  <th className="py-4 px-6 font-bold text-slate-900 uppercase tracking-wider text-xs text-right w-36">Harga Satuan</th>
+                  <th className="py-4 px-6 font-bold text-slate-900 uppercase tracking-wider text-xs text-right w-40">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {order.items?.map((item, index) => (
+                  <tr key={index} className="text-slate-700 bg-white">
+                    <td className="py-5 px-6">
+                      <p className="font-bold text-slate-900 text-base">{item.product.name}</p>
+                      {item.notes && (
+                        <p className="text-xs text-slate-500 mt-1 italic">Note: {item.notes}</p>
+                      )}
+                    </td>
+                    <td className="py-5 px-6 text-center font-medium bg-slate-50/50">{item.quantity}</td>
+                    <td className="py-5 px-6 text-right text-slate-500">
+                      {item.price.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-5 px-6 text-right font-bold text-slate-900 bg-slate-50/50">
+                      {(item.price * item.quantity).toLocaleString('id-ID')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* KALKULASI TOTAL */}
+          <div className="flex flex-col md:flex-row justify-between items-start gap-10">
+            
+            <div className="w-full md:w-1/2 space-y-8">
+              {order.notes && (
+                <div>
+                  <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-2">Catatan Tambahan</p>
+                  <p className="text-sm text-slate-600 italic leading-relaxed border-l-4 border-slate-200 pl-4 py-1">
+                    "{order.notes}"
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* 🟢 REVISI: RINCIAN TAGIHAN & RIWAYAT PEMBAYARAN */}
+            <div className="w-full md:w-5/12 bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="p-6 space-y-3 text-sm text-slate-600">
+                <div className="flex justify-between">
+                  <span>Subtotal Barang</span>
+                  <span className="font-semibold text-slate-900">Rp {order.subtotal?.toLocaleString('id-ID')}</span>
                 </div>
                 
-                <div className="border-t-2 border-slate-900 pt-4 px-2 flex justify-between items-center bg-slate-50 rounded-b-lg">
-                  <span className="font-bold text-slate-900 uppercase tracking-widest text-xs">Total Tagihan</span>
-                  <span className="text-2xl font-black text-slate-900">
-                    Rp {order.total?.toLocaleString('id-ID')}
-                  </span>
+                {order.shippingFee > 0 && (
+                  <div className="flex justify-between">
+                    <span>Biaya Pengiriman</span>
+                    <span className="font-semibold text-slate-900">Rp {order.shippingFee.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between pt-3 mt-3 border-t border-slate-200">
+                  <span className="font-bold text-slate-900">Total Keseluruhan</span>
+                  <span className="font-bold text-slate-900">Rp {totalBiaya.toLocaleString('id-ID')}</span>
+                </div>
+
+                {/* RIWAYAT TRANSAKSI (DP & PELUNASAN) */}
+                <div className="pt-3 mt-3 border-t border-slate-200 space-y-3">
+                  {isDP ? (
+                    <>
+                      <div className="flex justify-between items-start text-blue-700">
+                        <div>
+                          <span className="block font-medium">Uang Muka (DP 50%)</span>
+                          <span className="text-[10px] uppercase font-bold tracking-wider opacity-75">
+                            {totalPembayaranMasuk >= uangMuka ? 'Telah Dibayar' : 'Belum Dibayar'}
+                          </span>
+                        </div>
+                        <span className="font-bold">
+                          {totalPembayaranMasuk >= uangMuka ? '-' : ''} Rp {uangMuka.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-start text-emerald-700">
+                        <div>
+                          <span className="block font-medium">Pelunasan (50%)</span>
+                          <span className="text-[10px] uppercase font-bold tracking-wider opacity-75">
+                            {order.paymentStatus === 'PAID' && order.paidAt ? `Lunas: ${formatDate(order.paidAt)}` : 'Belum Dibayar'}
+                          </span>
+                        </div>
+                        <span className="font-bold">
+                          {order.paymentStatus === 'PAID' ? '-' : ''} Rp {(totalBiaya - uangMuka).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between items-start text-emerald-700">
+                      <div>
+                        <span className="block font-medium">Pembayaran Penuh</span>
+                        <span className="text-[10px] uppercase font-bold tracking-wider opacity-75">
+                          {order.paymentStatus === 'PAID' && order.paidAt ? `Lunas: ${formatDate(order.paidAt)}` : 'Belum Dibayar'}
+                        </span>
+                      </div>
+                      <span className="font-bold">
+                        {order.paymentStatus === 'PAID' ? '-' : ''} Rp {totalBiaya.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
 
-            {/* FOOTER */}
-            <div className="mt-20 pt-8 border-t border-slate-200 text-center">
-              <p className="text-sm font-bold text-slate-800 mb-1">Terima kasih atas kepercayaan Anda.</p>
-              <p className="text-xs text-slate-500">
-                Invoice ini sah dan diproses oleh sistem komputer, tidak memerlukan tanda tangan basah.
-              </p>
+              {/* TOTAL PEMBAYARAN MASUK & SISA TAGIHAN */}
+              <div className="bg-slate-100 p-4 border-t border-slate-200 flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Pembayaran Masuk</span>
+                <span className="text-sm font-black text-slate-900">Rp {totalPembayaranMasuk.toLocaleString('id-ID')}</span>
+              </div>
+              
+              <div className={`p-5 flex justify-between items-end ${
+                sisaTagihan === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white'
+              } print:border-t print:border-slate-900 print:-webkit-print-color-adjust-exact`}>
+                <span className="font-bold uppercase tracking-widest text-xs opacity-90 pb-1">
+                  Sisa Tagihan
+                </span>
+                <span className="text-2xl font-black tracking-tight">
+                  Rp {sisaTagihan.toLocaleString('id-ID')}
+                </span>
+              </div>
             </div>
-
           </div>
-        </div>
 
+          {/* FOOTER */}
+          <div className="mt-24 pt-8 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-xs font-semibold text-slate-800">
+              Terima kasih atas pesanan Anda.
+            </p>
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider text-center md:text-right">
+              Dokumen ini diterbitkan oleh sistem komputer<br className="hidden md:block"/> dan sah tanpa tanda tangan.
+            </p>
+          </div>
+
+        </div>
       </div>
 
-      {/* --- CSS KHUSUS CETAK --- */}
       <style jsx global>{`
         @media print {
-          @page {
-            size: A4 portrait;
-            margin: 0; /* Menghilangkan header/footer default browser */
-          }
-          body {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            background-color: white !important;
-            margin: 0;
-            padding: 0;
-          }
-          /* Pengaturan margin internal khusus untuk kertas */
-          .print\\:px-0 {
-            padding: 0 !important;
-          }
-          .print\\:py-0 {
-            padding: 0 !important;
-          }
-          /* Pastikan warna teks tajam saat dicetak */
-          .text-slate-900 { color: #0f172a !important; }
-          .text-slate-600 { color: #475569 !important; }
-          .text-slate-400 { color: #94a3b8 !important; }
+          @page { size: A4 portrait; margin: 0.5cm; }
+          body { background-color: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .print\\:py-0 { padding-top: 0 !important; padding-bottom: 0 !important; }
+          .print\\:px-0 { padding-left: 0 !important; padding-right: 0 !important; }
+          .print\\:shadow-none { box-shadow: none !important; }
+          .bg-slate-900 { background-color: #0f172a !important; color: white !important; }
           .border-slate-900 { border-color: #0f172a !important; }
+          .mix-blend-multiply { mix-blend-mode: multiply !important; }
         }
       `}</style>
     </div>

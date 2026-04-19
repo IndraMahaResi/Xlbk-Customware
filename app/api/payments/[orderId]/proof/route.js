@@ -10,21 +10,47 @@ export async function POST(request, { params }) {
     // Ambil URL file dari body request
     const { proofUrl } = await request.json()
 
-    // Update order with payment proof
+    // 1. Cari data pesanan terlebih dahulu untuk mengecek tipe pembayaran
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId }
+    })
+
+    if (!existingOrder) {
+      return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 })
+    }
+
+    // 2. LOGIKA CERDAS: Tentukan status pembayaran berikutnya
+    let newPaymentStatus = existingOrder.paymentStatus
+
+    if (existingOrder.paymentType === 'DP' && existingOrder.paymentStatus === 'UNPAID') {
+      // Jika ini DP dan baru bayar pertama kali -> DP MASUK (VERIFIED)
+      newPaymentStatus = 'VERIFIED'
+    } 
+    else if (existingOrder.paymentType === 'DP' && existingOrder.paymentStatus === 'VERIFIED') {
+      // Jika ini DP dan pelanggan sedang melunasi sisa tagihan -> LUNAS (PAID)
+      newPaymentStatus = 'PAID'
+    } 
+    else if (existingOrder.paymentType === 'FULL' || !existingOrder.paymentType) {
+      // Jika sistemnya bayar lunas dari awal -> LUNAS (PAID)
+      newPaymentStatus = 'PAID'
+    }
+
+    // 3. Update order dengan bukti pembayaran dan status yang sudah dikalkulasi
     const order = await prisma.order.update({
       where: { id: orderId },
       data: {
         paymentProof: proofUrl,
-        paymentStatus: 'PAID', // Mengubah status otomatis menjadi PAID setelah upload
-        paidAt: new Date()
+        paymentStatus: newPaymentStatus,
+        // Jika statusnya berujung LUNAS (PAID), barulah catat waktu pelunasannya
+        ...(newPaymentStatus === 'PAID' ? { paidAt: new Date() } : {})
       }
     })
 
-    // Update payment transaction
+    // 4. Update payment transaction agar sinkron dengan status Order
     await prisma.paymentTransaction.updateMany({
       where: { orderId },
       data: {
-        status: 'PAID'
+        status: newPaymentStatus
       }
     })
 
@@ -33,7 +59,8 @@ export async function POST(request, { params }) {
 
     return NextResponse.json({ 
       success: true,
-      message: 'Payment proof uploaded successfully' 
+      message: 'Payment proof uploaded successfully',
+      paymentStatus: newPaymentStatus 
     })
   } catch (error) {
     console.error('Upload payment proof error:', error)

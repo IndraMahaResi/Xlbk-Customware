@@ -6,10 +6,11 @@ import {
   XCircleIcon,
   DocumentArrowDownIcon,
   CheckBadgeIcon,
+  MapPinIcon,
   BanknotesIcon,
   Cog8ToothIcon,
   CheckCircleIcon,
-  PhotoIcon // Icon tambahan untuk cek bukti
+  PhotoIcon 
 } from '@heroicons/react/24/outline'
 
 export default function OrdersPage() {
@@ -17,6 +18,9 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [filter, setFilter] = useState('ALL')
+
+  const [shippingInput, setShippingInput] = useState('')
+  const [isVerifying, setIsVerifying] = useState(false)
 
   useEffect(() => {
     fetchOrders()
@@ -36,6 +40,18 @@ export default function OrdersPage() {
       setOrders([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchSingleOrder = async (orderId) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setSelectedOrder(data.order || data)
+      }
+    } catch (error) {
+      console.error("Gagal merefresh detail pesanan", error)
     }
   }
 
@@ -79,7 +95,6 @@ export default function OrdersPage() {
     }
   }
 
-  // FUNGSI Tombol Quick Actions (Auto Update)
   const handleQuickAction = async (orderId, updateData, successMessage) => {
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
@@ -102,7 +117,6 @@ export default function OrdersPage() {
     }
   }
 
-  // 🔥 FUNGSI BARU: Unduh Invoice oleh Admin
   const generateInvoice = async (orderId, invoiceNumber) => {
     try {
       toast.loading('Menyiapkan Invoice...', { id: 'invoice-toast' })
@@ -126,23 +140,50 @@ export default function OrdersPage() {
     }
   }
 
-  // Warna khusus Dark Mode untuk Status Pesanan
+  const handleVerifyShipping = async () => {
+    if (!shippingInput || isNaN(shippingInput)) {
+      return toast.error('Masukkan nominal ongkos kirim yang valid (angka saja)')
+    }
+
+    setIsVerifying(true)
+    try {
+      const res = await fetch(`/api/orders/${selectedOrder.id}/verify`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shippingFee: shippingInput })
+      })
+
+      if (res.ok) {
+        toast.success('Ongkos kirim berhasil ditambahkan! Akses pembayaran pelanggan telah dibuka.')
+        setShippingInput('') 
+        fetchOrders() 
+        fetchSingleOrder(selectedOrder.id) 
+      } else {
+        toast.error('Gagal memverifikasi pesanan')
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan sistem saat memverifikasi')
+    } finally {
+      setIsVerifying(false)
+    }
+  }
+
   const getStatusColor = (status) => {
     switch(status) {
       case 'PENDING': return 'bg-amber-500/10 text-amber-400 border-amber-500/30'
       case 'PROCESSING': return 'bg-blue-500/10 text-blue-400 border-blue-500/30'
       case 'COMPLETED': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
       case 'CANCELLED': return 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+      case 'NEED_VERIFICATION': return 'bg-orange-500/10 text-orange-400 border-orange-500/30'
       default: return 'bg-slate-500/10 text-slate-400 border-slate-500/30'
     }
   }
 
-  // Warna khusus Dark Mode untuk Status Pembayaran
   const getPaymentStatusColor = (status) => {
     switch(status) {
       case 'UNPAID': return 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-      case 'PAID': return 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-      case 'VERIFIED': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+      case 'PAID': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+      case 'VERIFIED': return 'bg-amber-500/10 text-amber-400 border-amber-500/30'
       case 'FAILED': return 'bg-slate-500/10 text-slate-400 border-slate-500/30'
       default: return 'bg-slate-500/10 text-slate-400 border-slate-500/30'
     }
@@ -171,6 +212,7 @@ export default function OrdersPage() {
               onChange={(e) => setFilter(e.target.value)}
             >
               <option value="ALL" className="bg-slate-800">Semua Pesanan</option>
+              <option value="NEED_VERIFICATION" className="bg-slate-800 text-orange-400">⚠️ Butuh Verifikasi</option>
               <option value="PENDING" className="bg-slate-800">Menunggu (Pending)</option>
               <option value="PROCESSING" className="bg-slate-800">Diproses</option>
               <option value="COMPLETED" className="bg-slate-800">Selesai</option>
@@ -199,14 +241,13 @@ export default function OrdersPage() {
                   <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">Total Biaya</th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">Status Order</th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">Pembayaran</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">Tanggal</th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700/50">
                 {filteredOrders.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="px-6 py-12 text-center text-slate-400">
+                      <td colSpan="6" className="px-6 py-12 text-center text-slate-400">
                         Belum ada pesanan ditemukan.
                       </td>
                     </tr>
@@ -217,10 +258,22 @@ export default function OrdersPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-100 group-hover:text-blue-400 transition-colors">{order.customerName}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">{order.customerEmail}</div>
+                      <div className="text-xs text-slate-400 mt-0.5">{order.customerPhone}</div>
+                      {order.countryOrigin && order.countryOrigin !== 'Indonesia' && (
+                        <div className="inline-block mt-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                          {order.countryOrigin}
+                        </div>
+                      )}
                     </td>
-                    <td className="px-6 py-4 font-bold text-slate-200">
-                      Rp {Number(order.total).toLocaleString('id-ID')}
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-200">
+                        Rp {Number(order.total).toLocaleString('id-ID')}
+                      </div>
+                      <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded border font-bold tracking-wider ${
+                        order.paymentType === 'DP' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                      }`}>
+                        {order.paymentType === 'DP' ? 'SISTEM DP (50%)' : 'FULL PAYMENT'}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <select
@@ -228,8 +281,10 @@ export default function OrdersPage() {
                         onChange={(e) => updateOrderStatus(order.id, e.target.value)}
                         className={`text-xs font-bold rounded-lg px-3 py-1.5 border appearance-none cursor-pointer outline-none transition-all ${getStatusColor(order.status)}`}
                       >
+                        <option value="NEED_VERIFICATION" className="bg-slate-800 text-slate-200" disabled>Need Verif</option>
                         <option value="PENDING" className="bg-slate-800 text-slate-200">Pending</option>
                         <option value="PROCESSING" className="bg-slate-800 text-slate-200">Processing</option>
+                        <option value="SHIPPED" className="bg-slate-800 text-slate-200">Shipped</option>
                         <option value="COMPLETED" className="bg-slate-800 text-slate-200">Completed</option>
                         <option value="CANCELLED" className="bg-slate-800 text-slate-200">Cancelled</option>
                       </select>
@@ -241,15 +296,10 @@ export default function OrdersPage() {
                         className={`text-xs font-bold rounded-lg px-3 py-1.5 border appearance-none cursor-pointer outline-none transition-all ${getPaymentStatusColor(order.paymentStatus)}`}
                       >
                         <option value="UNPAID" className="bg-slate-800 text-slate-200">Unpaid</option>
-                        <option value="PAID" className="bg-slate-800 text-slate-200">Paid</option>
-                        <option value="VERIFIED" className="bg-slate-800 text-slate-200">Verified</option>
+                        <option value="VERIFIED" className="bg-slate-800 text-slate-200">Verified (DP Masuk)</option>
+                        <option value="PAID" className="bg-slate-800 text-slate-200">Paid (Lunas)</option>
                         <option value="FAILED" className="bg-slate-800 text-slate-200">Failed</option>
                       </select>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-400 font-medium">
-                      {new Date(order.createdAt).toLocaleDateString('id-ID', {
-                          day: 'numeric', month: 'short', year: 'numeric'
-                      })}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button
@@ -294,30 +344,99 @@ export default function OrdersPage() {
 
             <div className="space-y-6">
 
-              {/* BLOK QUICK ACTIONS (AUTO BUTTONS) */}
+              {selectedOrder?.status === 'NEED_VERIFICATION' && (
+                <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-6 mb-8 shadow-[0_0_30px_rgba(245,158,11,0.1)] relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                  
+                  <div className="flex flex-col sm:flex-row items-start gap-5 relative z-10">
+                    <div className="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center shrink-0 border border-amber-500/30">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    </div>
+                    <div className="w-full">
+                      <h3 className="text-lg sm:text-xl font-bold text-amber-400 mb-1">Verifikasi Ongkir Internasional</h3>
+                      <p className="text-slate-300 text-sm mb-4 leading-relaxed">
+                        Pesanan dari <span className="font-bold text-white px-2 py-0.5 bg-slate-800 rounded">{selectedOrder.countryOrigin}</span>. Halaman pembayaran pelanggan saat ini sedang <strong className="text-rose-400">Terkunci</strong>. Masukkan total ongkos kirim (dalam Rupiah) untuk membuka akses pembayarannya.
+                      </p>
+                      
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <span className="text-slate-400 font-bold">Rp</span>
+                          </div>
+                          <input 
+                            type="number" 
+                            value={shippingInput}
+                            onChange={(e) => setShippingInput(e.target.value)}
+                            placeholder="Contoh: 350000"
+                            className="w-full pl-12 pr-4 py-3 bg-slate-900/80 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
+                          />
+                        </div>
+                        <button 
+                          onClick={handleVerifyShipping}
+                          disabled={isVerifying}
+                          className="px-6 py-3 bg-amber-500 text-slate-950 font-bold rounded-xl hover:bg-amber-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
+                        >
+                          {isVerifying ? 'Menyimpan...' : 'Simpan & Buka Akses'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* BLOK QUICK ACTIONS */}
               <div className="bg-slate-800/80 border border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shadow-lg">
                 <div className="flex items-center gap-2 text-sm font-bold text-slate-300 uppercase tracking-wider">
-                  <span>⚡ Quick Actions</span>
+                  <span>⚡ Aksi Cepat (Admin)</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button 
-                    onClick={() => handleQuickAction(selectedOrder.id, { paymentStatus: 'PAID' }, 'Pesanan ditandai LUNAS!')}
+                    onClick={() => handleQuickAction(selectedOrder.id, { paymentStatus: 'VERIFIED' }, 'Pesanan ditandai DP MASUK!')}
                     className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-white border border-amber-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                   >
-                    <BanknotesIcon className="w-4 h-4" /> Auto Paid
+                    <BanknotesIcon className="w-4 h-4" /> DP Masuk
                   </button>
                   <button 
-                    onClick={() => handleQuickAction(selectedOrder.id, { status: 'PROCESSING' }, 'Pesanan masuk tahap PROSES!')}
-                    className="flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                  >
-                    <Cog8ToothIcon className="w-4 h-4" /> Auto Process
-                  </button>
-                  <button 
-                    onClick={() => handleQuickAction(selectedOrder.id, { status: 'COMPLETED', paymentStatus: 'VERIFIED' }, 'Pesanan SELESAI & LUNAS!')}
+                    onClick={() => handleQuickAction(selectedOrder.id, { paymentStatus: 'PAID', status: 'PROCESSING' }, 'Pesanan ditandai LUNAS & DIPROSES!')}
                     className="flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                   >
-                    <CheckCircleIcon className="w-4 h-4" /> Auto Complete
+                    <CheckBadgeIcon className="w-4 h-4" /> Set Lunas
                   </button>
+                </div>
+              </div>
+
+              {/* 🔥 BLOK RINCIAN TAGIHAN & PEMBAYARAN 🔥 */}
+              <div className="bg-gradient-to-r from-slate-800 to-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-lg mb-6">
+                <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
+                   <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Status Finansial</h3>
+                   <span className={`px-3 py-1 rounded-lg text-xs font-bold ${selectedOrder.paymentType === 'DP' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                     {selectedOrder.paymentType === 'DP' ? 'SISTEM UANG MUKA (DP 50%)' : 'SISTEM FULL PAYMENT'}
+                   </span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                    <p className="text-xs text-slate-400 mb-1">Total Keseluruhan</p>
+                    <p className="text-lg font-bold text-white">Rp {Number(selectedOrder.total).toLocaleString('id-ID')}</p>
+                  </div>
+                  <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                    <p className="text-xs text-slate-400 mb-1">Status Pembayaran</p>
+                    <p className={`text-lg font-bold ${
+                      selectedOrder.paymentStatus === 'PAID' ? 'text-emerald-400' : 
+                      selectedOrder.paymentStatus === 'VERIFIED' ? 'text-amber-400' : 'text-rose-400'
+                    }`}>
+                      {selectedOrder.paymentStatus === 'PAID' ? 'LUNAS' : 
+                       selectedOrder.paymentStatus === 'VERIFIED' ? 'DP MASUK' : 'BELUM BAYAR'}
+                    </p>
+                  </div>
+                  <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                    <p className="text-xs text-slate-400 mb-1">Sisa Tagihan (Pelunasan)</p>
+                    <p className="text-lg font-bold text-rose-400">
+                      {selectedOrder.paymentStatus === 'PAID' ? 'Rp 0' : 
+                       selectedOrder.paymentType === 'DP' ? `Rp ${(selectedOrder.total / 2).toLocaleString('id-ID')}` : 
+                       `Rp ${selectedOrder.total.toLocaleString('id-ID')}`}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -332,6 +451,7 @@ export default function OrdersPage() {
                         <p className="flex justify-between"><span className="text-slate-400">Nama:</span> <span className="font-bold text-slate-200">{selectedOrder.customerName}</span></p>
                         <p className="flex justify-between"><span className="text-slate-400">Email:</span> <span className="font-medium text-slate-200">{selectedOrder.customerEmail}</span></p>
                         <p className="flex justify-between"><span className="text-slate-400">Telepon:</span> <span className="font-medium text-slate-200">{selectedOrder.customerPhone}</span></p>
+                        <p className="flex justify-between"><span className="text-slate-400">Negara:</span> <span className="font-medium text-slate-200">{selectedOrder.countryOrigin || 'Indonesia'}</span></p>
                     </div>
                   </div>
 
@@ -339,28 +459,14 @@ export default function OrdersPage() {
                   <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-5">
                     <h3 className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-3 flex items-center gap-2">
                         <CheckBadgeIcon className="w-4 h-4 text-emerald-400"/>
-                        Info Pembayaran
+                        Metode & Bukti Transfer
                     </h3>
                     <div className="space-y-3 text-sm">
-                        <p className="flex justify-between items-center"><span className="text-slate-400">Metode:</span> <span className="font-bold text-slate-200">{selectedOrder.paymentMethod}</span></p>
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-400">Status Bayar:</span> 
-                          <span className={`px-2 py-0.5 text-xs font-bold rounded border ${getPaymentStatusColor(selectedOrder.paymentStatus)}`}>
-                            {selectedOrder.paymentStatus}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-400">Status Order:</span> 
-                          <span className={`px-2 py-0.5 text-xs font-bold rounded border ${getStatusColor(selectedOrder.status)}`}>
-                            {selectedOrder.status}
-                          </span>
-                        </div>
+                        <p className="flex justify-between items-center"><span className="text-slate-400">Pilihan:</span> <span className="font-bold text-slate-200">{selectedOrder.paymentMethod}</span></p>
 
-                        {/* 🔥 TOMBOL LIHAT BUKTI TRANSFER 🔥 */}
-                        {/* Asumsi: URL bukti disimpan di tabel Order dengan field `paymentProof` atau direlasikan ke `paymentDetails.proofUrl` */}
                         {(selectedOrder.paymentProof || selectedOrder.paymentDetails?.proofUrl) && (
                           <div className="pt-3 mt-3 border-t border-slate-700/50 flex justify-between items-center">
-                            <span className="text-slate-400">Bukti Transfer:</span>
+                            <span className="text-slate-400">Bukti Transfer Terbaru:</span>
                             <a 
                               href={selectedOrder.paymentProof || selectedOrder.paymentDetails?.proofUrl} 
                               target="_blank" 
@@ -375,7 +481,6 @@ export default function OrdersPage() {
                   </div>
               </div>
 
-              {/* Alamat Pengiriman */}
               {selectedOrder.address && (
                 <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-5">
                     <h3 className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2">Alamat Pengiriman</h3>
@@ -435,21 +540,12 @@ export default function OrdersPage() {
                   )}
               </div>
 
-              {/* Total Tagihan & Cetak Invoice */}
-              <div className="bg-gradient-to-r from-slate-800 to-slate-800/80 border border-slate-700 rounded-2xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-lg">
-                <div>
-                  <span className="block text-lg font-bold text-slate-300 uppercase tracking-widest mb-1">Total Tagihan</span>
-                  <span className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-sky-300">
-                    Rp {Number(selectedOrder.total).toLocaleString('id-ID')}
-                  </span>
-                </div>
-                
-                {/* 🔥 TOMBOL UNDUH INVOICE 🔥 */}
+              <div className="flex justify-end mt-4">
                 <button
                   onClick={() => generateInvoice(selectedOrder.id, selectedOrder.invoiceNumber)}
                   className="flex items-center gap-2 bg-slate-900 hover:bg-slate-700 text-white border border-slate-600 px-5 py-3 rounded-xl text-sm font-bold transition-all shadow-md"
                 >
-                  <DocumentArrowDownIcon className="w-5 h-5" /> Cetak Invoice
+                  <DocumentArrowDownIcon className="w-5 h-5" /> Cetak Invoice / Resi
                 </button>
               </div>
 

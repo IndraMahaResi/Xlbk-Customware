@@ -8,7 +8,8 @@ import {
   CubeIcon,
   ChatBubbleLeftRightIcon,
   ArrowRightOnRectangleIcon,
-  UserPlusIcon // 🔥 Import ikon untuk Register
+  UserPlusIcon,
+  GlobeAltIcon // 🔥 Import ikon untuk Verifikasi LN
 } from '@heroicons/react/24/outline'
 
 export default function DashboardLayout({ children }) {
@@ -49,9 +50,10 @@ export default function DashboardLayout({ children }) {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Manajemen Pesanan', href: '/dashboard/orders', icon: ShoppingBagIcon },
+    { name: 'Verifikasi LN', href: '/dashboard/international', icon: GlobeAltIcon }, // 🔥 Menu Baru Verifikasi Luar Negeri
     { name: 'Katalog Produk', href: '/dashboard/products', icon: CubeIcon },
     { name: 'Testimoni', href: '/dashboard/testimonials', icon: ChatBubbleLeftRightIcon },
-    { name: 'Register Akun', href: '/register', icon: UserPlusIcon }, // 🔥 Menu Baru
+    { name: 'Register Akun', href: '/register', icon: UserPlusIcon }, 
   ]
 
   if (!mounted || !user) {
@@ -78,7 +80,7 @@ export default function DashboardLayout({ children }) {
 
         <nav className="flex-1 p-4 space-y-2">
           {navigation.map((item) => {
-            const isActive = pathname === item.href
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
             return (
               <Link
                 key={item.name}

@@ -7,17 +7,10 @@ import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false) // State untuk cek status login Admin
   const pathname = usePathname()
 
   useEffect(() => {
-    // 1. Cek token di localStorage untuk menentukan apakah ini Admin
-    const token = localStorage.getItem('token')
-    if (token) {
-      setIsAdmin(true)
-    }
-
-    // 2. Efek untuk mendeteksi scroll agar efek kaca (glassmorphism) dinamis
+    // Efek untuk mendeteksi scroll agar efek kaca (glassmorphism) dinamis
     const handleScroll = () => {
       setScrolled(window.scrollY > 20)
     }
@@ -48,7 +41,7 @@ export default function Navbar() {
             href="/"
             className="text-2xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-400 hover:scale-105 transition-transform drop-shadow-md"
           >
-            XLBK Customware<span className="text-blue-500">.</span>
+            XLBK Customwear<span className="text-blue-500">.</span>
           </Link>
 
           {/* DESKTOP MENU */}
@@ -66,7 +59,7 @@ export default function Navbar() {
                   >
                     {item.name}
                   </Link>
-                  {/* Indikator titik di bawah menu aktif (diperbaiki agar tidak merusak layout) */}
+                  {/* Indikator titik di bawah menu aktif */}
                   {isActive && (
                     <span className="absolute bottom-0 w-1/2 h-0.5 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]"></span>
                   )}
@@ -74,21 +67,21 @@ export default function Navbar() {
               )
             })}
 
-            {/* Tombol CTA Desktop - 🔥 HANYA MUNCUL JIKA ADMIN */}
+            {/* Tombol CTA Desktop */}
             <div className="flex items-center gap-4 pl-4 border-l border-slate-700/50">
-              {isAdmin && (
-                <Link
-                  href="/dashboard"
-                  className="px-5 py-2 rounded-xl bg-slate-800/80 border border-slate-700
-                  text-slate-200 font-bold text-sm
-                  hover:bg-slate-700 hover:text-white hover:border-slate-500
-                  transition-all duration-300"
-                >
-                  Dashboard Admin
-                </Link>
-              )}
+              
+              {/* Tombol Cek Tagihan / Pelunasan (Bisa diakses semua pelanggan) */}
+              <Link
+                href="/pelunasan"
+                className="px-5 py-2 rounded-xl bg-slate-800/80 border border-slate-700
+                text-slate-200 font-bold text-sm
+                hover:bg-slate-700 hover:text-white hover:border-slate-500
+                transition-all duration-300"
+              >
+                Cek Tagihan
+              </Link>
 
-              {/* Tombol Order untuk Customer (Selalu Muncul) */}
+              {/* Tombol Order untuk Customer */}
               <Link
                 href="/products"
                 className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:shadow-[0_0_20px_rgba(37,99,235,0.6)] transition-all duration-300"
@@ -146,16 +139,14 @@ export default function Navbar() {
               Order Sekarang
             </Link>
 
-            {/* Tombol Dashboard Mobile - 🔥 HANYA MUNCUL JIKA ADMIN */}
-            {isAdmin && (
-              <Link
-                href="/dashboard"
-                className="block w-full py-3.5 text-center rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-bold hover:bg-slate-700 transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                Masuk Dashboard
-              </Link>
-            )}
+            {/* Tombol Pelunasan Mobile */}
+            <Link
+              href="/pelunasan"
+              className="block w-full py-3.5 text-center rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-bold hover:bg-slate-700 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              Cek Tagihan / Pelunasan
+            </Link>
           </div>
         </div>
       </div>

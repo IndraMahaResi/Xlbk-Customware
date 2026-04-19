@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
+// 🔥 REVISI 1: Mematikan cache agar Dashboard selalu menampilkan data Real-Time
+export const dynamic = 'force-dynamic'
+
 // GET all orders (for admin dashboard)
 export async function GET(request) {
   try {
@@ -64,6 +67,10 @@ export async function POST(request) {
       )
     }
     
+    // 🔥 PERBAIKAN 1: Pastikan angka ter-convert dengan benar sebelum masuk database
+    const subtotalFloat = parseFloat(data.subtotal) || 0
+    const totalFloat = parseFloat(data.total) || 0
+
     // Create order
     const order = await prisma.order.create({
       data: {
@@ -72,19 +79,22 @@ export async function POST(request) {
         customerEmail: data.customerEmail,
         customerPhone: data.customerPhone,
         address: data.address,
+        countryOrigin: data.countryOrigin || 'Indonesia', 
+        status: data.status || 'PENDING',                
         designFile: data.designFile,
         designNotes: data.designNotes,
         notes: data.notes,
-        subtotal: data.subtotal,
-        total: data.total,
+        subtotal: subtotalFloat, // <-- Dimasukkan sebagai angka murni
+        total: totalFloat,       // <-- Dimasukkan sebagai angka murni
         paymentMethod: data.paymentMethod,
+        paymentType: data.paymentType || 'FULL', // 🔥 PERBAIKAN 2: Wajib memasukkan paymentType (DP atau FULL)
         paymentStatus: 'UNPAID',
         expiredAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         items: {
           create: data.items.map(item => ({
             productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
+            quantity: parseInt(item.quantity) || 1,
+            price: parseFloat(item.price) || 0,
             notes: item.notes
           }))
         }

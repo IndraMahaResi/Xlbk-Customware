@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -39,29 +37,35 @@ model Product {
 }
 
 model Order {
-  id                  String               @id @default(cuid())
-  invoiceNumber       String               @unique
-  customerName        String
-  customerEmail       String
-  customerPhone       String
-  address             String?
-  designFile          String?
-  designNotes         String?
-  notes               String?
-  subtotal            Float
-  shippingFee         Float                @default(0)
-  total               Float
-  status              OrderStatus          @default(PENDING)
-  paymentMethod       PaymentMethod
-  paymentStatus       PaymentStatus        @default(UNPAID)
-  paymentDetails      Json? // Untuk menyimpan detail payment QRIS, BTC, USDT
-  paymentProof        String?
-  paidAt              DateTime?
-  expiredAt           DateTime
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  items               OrderItem[]
-  transactions PaymentTransaction[]
+  id             String               @id @default(cuid())
+  invoiceNumber  String               @unique
+  customerName   String
+  customerEmail  String
+  customerPhone  String
+  address        String?
+  countryOrigin  String               @default("Indonesia") // 🟢 FITUR 5: Filter negara (Indonesia/Luar Negeri)
+  designFile     String?
+  designNotes    String?
+  notes          String?
+  subtotal       Float
+  shippingFee    Float                @default(0)
+  taxFee         Float                @default(0) // 🟢 FITUR 4: Untuk PPN
+  total          Float
+  status         OrderStatus          @default(PENDING)
+  paymentMethod  PaymentMethod
+  paymentStatus  PaymentStatus        @default(UNPAID)
+  paymentDetails Json?
+  paymentProof   String?
+  paidAt         DateTime?
+  expiredAt      DateTime
+  receiptNumber  String?              // 🟢 FITUR 3: Nomor Resi Pengiriman
+  isWaNotified   Boolean              @default(false) // 🟢 FITUR 2 & 3: Status notif WA terkirim
+  paymentType    PaymentType          @default(FULL) // 🟢 BARU: Mencatat tipe (FULL / DP)
+  amountPaid     Float                @default(0)    // 🟢 BARU: Uang yang sudah masuk
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  items          OrderItem[]
+  transactions   PaymentTransaction[]
 }
 
 model OrderItem {
@@ -73,6 +77,25 @@ model OrderItem {
   notes     String?
   order     Order   @relation(fields: [orderId], references: [id])
   product   Product @relation(fields: [productId], references: [id])
+}
+
+// 🟢 FITUR 1: Tabel Setting (Tema, Gmaps, WA Owner)
+model Setting {
+  id         String   @id @default(cuid())
+  themeColor String   @default("blue")
+  gmapsUrl   String?  @db.Text
+  waNumber   String   @default("6281283433771") // Default WA Owner
+  updatedAt  DateTime @updatedAt
+}
+
+// 🟢 FITUR 6: Tabel Portofolio (Hasil Produk Jadi)
+model Portfolio {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 enum Role {
@@ -94,8 +117,10 @@ enum Category {
 enum OrderStatus {
   PENDING
   PROCESSING
+  SHIPPED       // 🟢 FITUR 3: Status baru saat barang dikirim
   COMPLETED
   CANCELLED
+  NEED_VERIFICATION // 🟢 FITUR 5: Untuk order luar negeri
 }
 
 enum PaymentMethod {
@@ -115,39 +140,45 @@ enum PaymentStatus {
 }
 
 model PaymentTransaction {
-  id            String        @id @default(cuid())
-  orderId       String
-  order         Order         @relation(fields: [orderId], references: [id])
-  amount        Float
-  method        PaymentMethod
-  status        PaymentStatus @default(PENDING)
-  transactionId String?        // ID dari payment gateway
-  qrCode        String?        // QR code URL
-  qrString      String?        // QR string untuk generate
-  walletAddress String?        // Wallet address untuk crypto
-  cryptoAmount  Float?         // Amount in crypto
-  cryptoCurrency String?       // BTC, USDT
-  bankName      String?        // Nama bank
-  bankAccount   String?        // Nomor rekening
-  accountName   String?        // Nama pemilik rekening
-  expiresAt     DateTime
-  paidAt        DateTime?
-  paymentProof  String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id             String        @id @default(cuid())
+  orderId        String
+  order          Order         @relation(fields: [orderId], references: [id])
+  amount         Float
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  transactionId  String?
+  qrCode         String?
+  qrString       String?
+  walletAddress  String?
+  cryptoAmount   Float?
+  cryptoCurrency String?
+  bankName       String?
+  bankAccount    String?
+  accountName    String?
+  expiresAt      DateTime
+  paidAt         DateTime?
+  paymentProof   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
 
 model Testimonial {
   id          String   @id @default(cuid())
   name        String
   email       String?
-  role        String?   // Posisi/jabatan (optional)
+  role        String?
   message     String
-  rating      Int      @default(5) // 1-5
-  image       String?   // Foto customer
-  productName String?   // Nama produk yang dibeli
-  isApproved  Boolean  @default(false) // Perlu approve dulu
-  isFeatured  Boolean  @default(false) // Testimoni unggulan
+  rating      Int      @default(5)
+  image       String?
+  productName String?
+  isApproved  Boolean  @default(false)
+  isFeatured  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+enum PaymentType {
+  FULL
+  DP
+}
+

@@ -8,7 +8,9 @@ import {
   CreditCardIcon,
   TruckIcon,
   CheckCircleIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  ShoppingCartIcon,
+  Cog8ToothIcon
 } from '@heroicons/react/24/outline'
 
 export default function HowToOrder() {
@@ -19,7 +21,7 @@ export default function HowToOrder() {
       number: 1,
       title: 'Pilih Produk Base',
       description: 'Pilih produk yang ingin Anda custom dari katalog kami. Tersedia berbagai pilihan seperti mug, tumbler, totebag, kaos, dan souvenir.',
-      icon: DocumentTextIcon,
+      icon: ShoppingCartIcon,
       color: 'text-blue-400 bg-blue-500/10 border-blue-500/20 shadow-[0_0_15px_rgba(37,99,235,0.15)]'
     },
     {
@@ -31,30 +33,30 @@ export default function HowToOrder() {
     },
     {
       number: 3,
-      title: 'Upload & Konfigurasi',
-      description: 'Upload desain Anda melalui form pemesanan, tentukan kuantitas, ukuran, dan spesifikasi tambahan, lalu lengkapi data pengiriman.',
+      title: 'Checkout & Tipe Bayar',
+      description: 'Lengkapi data pengiriman Anda. Pilih sistem pembayaran yang diinginkan (Pembayaran Penuh atau Uang Muka / DP 50%).',
       icon: DocumentTextIcon,
       color: 'text-sky-400 bg-sky-500/10 border-sky-500/20 shadow-[0_0_15px_rgba(14,165,233,0.15)]'
     },
     {
       number: 4,
-      title: 'Pembayaran (Fiat/Crypto)',
-      description: 'Lakukan pembayaran sesuai metode yang dipilih (Transfer Bank, QRIS, BTC, atau USDT) dan sistem akan memverifikasi otomatis.',
+      title: 'Pembayaran & Verifikasi',
+      description: 'Unggah bukti transfer (Bank/QRIS/Crypto). Khusus Pesanan Internasional, tunggu Admin mengkalkulasi ongkos kirim via WhatsApp sebelum membayar.',
       icon: CreditCardIcon,
       color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
     },
     {
       number: 5,
       title: 'Proses Produksi',
-      description: 'Tim kami akan memvalidasi desain dan memulai produksi. Waktu pengerjaan biasanya 3-7 hari kerja tergantung antrean.',
-      icon: TruckIcon,
+      description: 'Setelah pembayaran awal (Full / DP) terverifikasi, tim kami akan memulai produksi. Waktu pengerjaan berkisar 3-7 hari kerja.',
+      icon: Cog8ToothIcon,
       color: 'text-amber-400 bg-amber-500/10 border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
     },
     {
       number: 6,
-      title: 'Pengiriman',
-      description: 'Produk selesai akan dikemas aman dan dikirim ke alamat Anda. Nomor resi pelacakan akan dikirimkan ke email/dashboard Anda.',
-      icon: CheckCircleIcon,
+      title: 'Pelunasan & Pengiriman',
+      description: 'Bagi pengguna sistem DP, lakukan pelunasan melalui menu "Cek Tagihan". Setelah lunas, pesanan akan segera dikirim beserta nomor resi.',
+      icon: TruckIcon,
       color: 'text-rose-400 bg-rose-500/10 border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.15)]'
     }
   ]
@@ -80,24 +82,24 @@ export default function HowToOrder() {
 
   const faqs = [
     {
+      question: 'Bagaimana sistem pembayaran Uang Muka (DP 50%) bekerja?',
+      answer: 'Saat checkout, Anda bisa memilih opsi DP 50%. Setelah mengunggah bukti transfer DP, pesanan Anda akan langsung kami proses. Sisa tagihan (50% sisanya beserta ongkos kirim) dapat dilunasi melalui halaman "Cek Tagihan" saat pesanan Anda sudah selesai diproduksi dan siap dikirim.'
+    },
+    {
+      question: 'Bagaimana cara memesan jika saya berada di Luar Negeri?',
+      answer: 'Silakan pilih asal negara "Luar Negeri" pada saat mengisi formulir checkout. Sistem akan mengarahkan Anda ke WhatsApp agar tim kami dapat menghitung ongkos kirim internasional secara manual. Setelah ongkos kirim disepakati dan di-input oleh Admin, gembok pembayaran di halaman Anda akan otomatis terbuka.'
+    },
+    {
+      question: 'Metode pembayaran apa saja yang diterima?',
+      answer: 'Kami menerima berbagai metode pembayaran modern: Transfer Bank (BCA, Mandiri), QRIS (mendukung semua E-Wallet lokal), serta mata uang Kripto (Bitcoin dan USDT via jaringan BEP20).'
+    },
+    {
       question: 'Berapa lama estimasi proses produksi?',
-      answer: 'Proses produksi memakan waktu sekitar 3-7 hari kerja setelah desain disetujui dan pembayaran diverifikasi. Ini bisa bervariasi tergantung pada kerumitan cetak dan antrean produksi.'
-    },
-    {
-      question: 'Apakah saya bisa meminta revisi desain yang sudah diupload?',
-      answer: 'Jika pesanan masih berstatus "Pending" dan belum masuk tahap "Processing", Anda bisa menghubungi admin kami untuk mengubah file desain.'
-    },
-    {
-      question: 'Bagaimana cara tracking pesanan saya?',
-      answer: 'Setelah pesanan dikirim, status di dashboard Anda akan berubah, dan Anda bisa melihat resi pengiriman yang tertera untuk dilacak melalui kurir pilihan.'
+      answer: 'Proses produksi memakan waktu sekitar 3-7 hari kerja setelah desain disetujui dan pembayaran (Full/DP) diverifikasi. Ini bisa bervariasi tergantung pada kerumitan cetak dan antrean produksi.'
     },
     {
       question: 'Apakah ada Minimum Order Quantity (MOQ)?',
-      answer: 'Kami melayani pembuatan satuan (tanpa minimum order) untuk produk tertentu seperti Kaos dan Mug. Untuk harga grosir, minimal pesanan bervariasi per produk.'
-    },
-    {
-      question: 'Apakah saya bisa mencetak sample terlebih dahulu?',
-      answer: 'Tentu. Untuk pesanan partai besar (B2B), kami sangat menyarankan untuk mencetak 1 sample terlebih dahulu (dikenakan biaya normal). Jika disetujui, biaya sample bisa dipotongkan dari total tagihan pesanan massal.'
+      answer: 'Kami melayani pembuatan satuan (tanpa minimum order) untuk mayoritas produk. Untuk harga grosir (partai besar), minimal pesanan bervariasi tergantung jenis produk yang dipilih.'
     }
   ]
 
@@ -118,7 +120,7 @@ export default function HowToOrder() {
             Cara Melakukan Pemesanan
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            Proses pemesanan transparan dan terstruktur. Ikuti panduan sederhana ini untuk mewujudkan merchandise impian Anda.
+            Proses pemesanan kini lebih fleksibel dengan dukungan Sistem DP dan Pengiriman Internasional.
           </p>
         </div>
       </section>

@@ -8,6 +8,7 @@ export async function middleware(request) {
   // 1. DAFTAR PATH PUBLIC (Bisa diakses siapa saja)
   const isPublicApi = path.startsWith('/api/auth') || 
                       path.startsWith('/api/products') || 
+                      path.startsWith('/api/testimonials') ||
                       path.startsWith('/api/orders/create')
 
   // 2. PROTEKSI HALAMAN DASHBOARD
