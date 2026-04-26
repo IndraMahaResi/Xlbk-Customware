@@ -182,3 +182,47 @@ enum PaymentType {
   DP
 }
 
+// Model untuk menyimpan pengaturan dinamis website
+model StoreSettings {
+  id              String   @id @default(cuid())
+  
+  // Kontak Dasar & Lokasi
+  whatsapp        String?  
+  email           String?  
+  gmapsEmbed      String?  @db.Text 
+  
+  // Pembayaran: QRIS & Crypto (Statis, biasanya hanya 1)
+  qrisImage       String?  
+  cryptoBtc       String?  
+  cryptoUsdt      String?  
+
+  // 🔥 FITUR BARU: Data Dinamis (Disimpan dalam format JSON Array)
+  socials         Json?    // Contoh: [{ name: "Instagram", url: "..." }]
+  marketplaces    Json?    // Contoh: [{ name: "Shopee", url: "..." }]
+  banks           Json?    // Contoh: [{ bank: "BCA", number: "123", owner: "PT XLBK" }]
+
+  promoActive     Boolean  @default(false)
+  promoMessage    String?
+  promoLink       String?
+  promoButtonText String?
+
+  updatedAt       DateTime @updatedAt
+}
+// 🟢 FITUR 6: Tabel Hasil Karya (Produk Jadi)
+model HasilKarya {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+// 🟢 FITUR BARU: Tabel Promo & Event
+model PromoEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String
+  badge       String?  @default("PROMO") // Contoh: "DISKON 50%", "EVENT BARU"
+  createdAt   DateTime @default(now())
+}

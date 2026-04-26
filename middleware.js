@@ -5,11 +5,19 @@ export async function middleware(request) {
   const path = request.nextUrl.pathname
   const token = request.cookies.get('token')?.value
 
-  // 1. DAFTAR PATH PUBLIC (Bisa diakses siapa saja)
+  // 1. DAFTAR PATH PUBLIC (Bisa diakses siapa saja oleh Customer/Pelanggan)
+  // 🔥 REVISI: Menambahkan rute upload, order spesifik, dan payment agar pelanggan bisa bayar
   const isPublicApi = path.startsWith('/api/auth') || 
                       path.startsWith('/api/products') || 
                       path.startsWith('/api/testimonials') ||
-                      path.startsWith('/api/orders/create')
+                      path.startsWith('/api/orders/create') ||
+                      path.startsWith('/api/upload') || // 🟢 Buka akses untuk Upload Bukti Transfer
+                      path.startsWith('/api/payments/') || // 🟢 Buka akses halaman pembayaran
+                      (path.startsWith('/api/orders/') && path !== '/api/orders') ||
+                      // 🟢 Buka akses Order spesifik (/api/orders/[id]), tapi TETAP KUNCI /api/orders (Data semua order untuk Admin)
+                      path.startsWith('/api/settings') || 
+                      path.startsWith('/api/hasil-karya') ||
+                      path.startsWith('/api/promo') 
 
   // 2. PROTEKSI HALAMAN DASHBOARD
   if (path.startsWith('/dashboard')) {

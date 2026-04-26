@@ -27,6 +27,25 @@ export default function PaymentPage() {
   const [uploading, setUploading] = useState(false)
   const [countdown, setCountdown] = useState(0)
 
+  // 🟢 MENGAMBIL DATA SETTINGS DINAMIS
+  const [storeSettings, setStoreSettings] = useState(null)
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => setStoreSettings(data))
+      .catch(err => console.error('Gagal memuat pengaturan:', err))
+  }, [])
+
+  // 🟢 VARIABEL DINAMIS DARI DATABASE SETTINGS
+  const WALLET_ADDRESSES = {
+    BTC: storeSettings?.cryptoBtc || 'bc1qar9fgrkghr6v58qelc3cdjkptyw8j3gh95w24s', 
+    USDT: storeSettings?.cryptoUsdt || '0xb1bFa84d196aB9F32D07F770F3c5712501d5903c'  
+  }
+  const QRIS_IMAGE = storeSettings?.qrisImage || '/images/qris.png'
+  const BANKS = storeSettings?.banks || []
+  const adminPhone = storeSettings?.whatsapp || '6281283433771'
+
   // 🟢 TANGKAP DATA DARI URL (HALAMAN SEBELUMNYA)
   const isPelunasan = searchParams.get('type') === 'pelunasan'
   const urlTotal = Number(searchParams.get('total')) || 0
@@ -34,11 +53,6 @@ export default function PaymentPage() {
 
   const [cryptoRates, setCryptoRates] = useState({ BTC: 0, USDT: 0 })
   const [isCalculating, setIsCalculating] = useState(true)
-
-  const WALLET_ADDRESSES = {
-    BTC: 'bc1qar9fgrkghr6v58qelc3cdjkptyw8j3gh95w24s', 
-    USDT: '0xb1bFa84d196aB9F32D07F770F3c5712501d5903c'  
-  }
 
   useEffect(() => {
     const fetchCryptoRates = async () => {
@@ -125,44 +139,39 @@ export default function PaymentPage() {
     }
   }
 
+  // 🔥 FUNGSI UPLOAD BUKTI BAYAR
   const handlePaymentProof = async (e) => {
     const file = e.target.files[0]
     if (!file) return
 
     setUploading(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      
-      const uploadRes = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      })
-      const uploadData = await uploadRes.json()
-      
-      const proofRes = await fetch(`/api/payments/${params.orderId}/proof`, {
-        method: 'POST',
+      const updateRes = await fetch(`/api/orders/${params.orderId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proofUrl: uploadData.url })
+        body: JSON.stringify({ 
+          paymentStatus: isPelunasan ? 'PAID' : 'VERIFIED',
+          status: 'PROCESSING'
+        })
       })
       
-      if (proofRes.ok) {
-        toast.success(isPelunasan ? 'Bukti pelunasan berhasil diunggah! 🎉' : 'Bukti pembayaran berhasil diunggah! 🎉')
+      if (updateRes.ok) {
+        toast.success(isPelunasan ? 'Bukti pelunasan berhasil diterima! 🎉' : 'Bukti pembayaran berhasil diterima! 🎉')
         fetchOrderData()
 
-        const adminPhone = '6281283433771'
         const paymentTypeStr = isPelunasan ? 'Pelunasan Tagihan' : (order?.paymentType === 'DP' ? 'Uang Muka (DP 50%)' : 'Pembayaran Penuh')
-        const waMessage = `Halo Admin, saya baru saja mengunggah bukti transfer untuk *${paymentTypeStr}*.\n\n*Invoice:* ${order?.invoiceNumber}\n*Nama:* ${order?.customerName}\n\nMohon segera dicek dan diverifikasi ya. Terima kasih! 🙏`
+        const waMessage = `Halo Admin, saya baru saja mentransfer pembayaran untuk *${paymentTypeStr}*.\n\n*Invoice:* ${order?.invoiceNumber}\n*Nama:* ${order?.customerName}\n\nFile bukti transfer sudah saya simpan. Mohon segera dicek mutasi rekeningnya ya. Terima kasih! 🙏`
         
         setTimeout(() => {
           window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(waMessage)}`, '_blank')
         }, 1500)
 
       } else {
-        toast.error('Gagal memvalidasi bukti pembayaran')
+        toast.error('Gagal mengkonfirmasi pembayaran.')
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan saat mengunggah file')
+      console.error(error)
+      toast.error('Terjadi kesalahan sistem saat memproses bukti')
     } finally {
       setUploading(false)
     }
@@ -225,21 +234,15 @@ export default function PaymentPage() {
   // =================================================================
   // 🟢 LOGIKA: MENGAMBIL HARGA DARI HALAMAN SEBELUMNYA (URL)
   // =================================================================
-  
-  // 1. Ambil Total Biaya (Prioritas 1: Dari URL, Prioritas 2: Dari Database)
   const totalBiaya = urlTotal > 0 ? urlTotal : (Number(order?.total) || 0);
-  
-  // 2. Ambil Tipe Pembayaran (Prioritas 1: Dari URL, Prioritas 2: Dari Database)
   const activePaymentType = urlPayType || order?.paymentType || 'FULL';
 
-  // 3. Kalkulasi Tagihan yang harus dibayar saat ini (Grand Total)
-  let grandTotal = totalBiaya; // Default: Bayar Full
-  
+  let grandTotal = totalBiaya; 
   if (activePaymentType.toUpperCase() === 'DP') {
     if (isPelunasan) {
-      grandTotal = totalBiaya / 2; // Tagihan Sisa Pelunasan (50%)
+      grandTotal = totalBiaya / 2; 
     } else {
-      grandTotal = totalBiaya / 2; // Tagihan DP Awal (50%)
+      grandTotal = totalBiaya / 2; 
     }
   }
 
@@ -289,7 +292,7 @@ export default function PaymentPage() {
    
                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                    <button 
-                     onClick={() => window.open(`https://wa.me/6281283433771?text=Halo Admin, saya ingin menanyakan status perhitungan ongkir untuk pesanan internasional saya dengan Invoice: *${order?.invoiceNumber}*. Terima kasih!`, '_blank')}
+                     onClick={() => window.open(`https://wa.me/${adminPhone}?text=Halo Admin, saya ingin menanyakan status perhitungan ongkir untuk pesanan internasional saya dengan Invoice: *${order?.invoiceNumber}*. Terima kasih!`, '_blank')}
                      className="w-full sm:w-auto px-8 py-4 bg-emerald-600/10 border border-emerald-500/30 text-emerald-400 rounded-xl font-bold hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2"
                    >
                      <ChatBubbleOvalLeftEllipsisIcon className="w-6 h-6" />
@@ -340,7 +343,8 @@ export default function PaymentPage() {
                     {payMethod === 'QRIS' ? (
                       <div className="text-center animate-in fade-in duration-500">
                         <div className="bg-white p-4 rounded-2xl inline-block mb-6 border-4 border-slate-200 shadow-xl">
-                          <Image src="/images/qris.png" alt="Scan QRIS" width={250} height={250} className="mx-auto rounded-lg" onError={(e) => e.target.style.display='none'}/>
+                          {/* 🟢 QRIS DINAMIS */}
+                          <Image src={QRIS_IMAGE} alt="Scan QRIS" width={250} height={250} className="mx-auto rounded-lg" onError={(e) => e.target.style.display='none'}/>
                           <div className="text-slate-900 font-bold mt-2">Scan QRIS</div>
                         </div>
                         <ul className="text-left text-slate-400 space-y-3 text-sm max-w-sm mx-auto bg-slate-800/50 p-5 rounded-xl border border-slate-700">
@@ -424,27 +428,28 @@ export default function PaymentPage() {
                         </div>
                       </div>
                     ) : (
+                      // 🟢 LIST DAFTAR BANK DINAMIS DARI DASHBOARD ADMIN
                       <div className="space-y-4 animate-in fade-in duration-500">
-                        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-blue-500/50 transition-colors">
-                          <div>
-                            <p className="font-bold text-slate-200 text-lg">Bank BCA</p>
-                            <p className="text-slate-400 text-xs">a.n. PT Xlbk Customwear</p>
+                        {BANKS.length > 0 ? (
+                          BANKS.map((bankObj, idx) => (
+                            <div key={idx} className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-blue-500/50 transition-colors">
+                              <div>
+                                <p className="font-bold text-slate-200 text-lg">Bank {bankObj.bank}</p>
+                                <p className="text-slate-400 text-xs">a.n. {bankObj.owner}</p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <p className="font-mono text-xl font-bold text-blue-400 tracking-wider">{bankObj.number}</p>
+                                <button onClick={() => copyToClipboard(bankObj.number, `No. Rekening ${bankObj.bank}`)} className="p-2.5 bg-slate-900 rounded-lg border border-slate-700 hover:border-blue-500 transition-all">
+                                  <DocumentDuplicateIcon className="w-5 h-5 text-slate-400 group-hover:text-blue-400" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-slate-400 text-center py-6 border border-slate-700 border-dashed rounded-xl bg-slate-800/30 text-sm italic">
+                            Belum ada bank yang dikonfigurasi. Silakan hubungi Admin.
                           </div>
-                          <div className="flex items-center gap-3">
-                            <p className="font-mono text-xl font-bold text-blue-400 tracking-wider">1234567890</p>
-                            <button onClick={() => copyToClipboard('1234567890', 'No. Rekening BCA')} className="p-2.5 bg-slate-900 rounded-lg border border-slate-700 hover:border-blue-500 transition-all"><DocumentDuplicateIcon className="w-5 h-5 text-slate-400 group-hover:text-blue-400" /></button>
-                          </div>
-                        </div>
-                        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-amber-500/50 transition-colors">
-                          <div>
-                            <p className="font-bold text-slate-200 text-lg">Bank Mandiri</p>
-                            <p className="text-slate-400 text-xs">a.n. PT Xlbk Customwear</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <p className="font-mono text-xl font-bold text-amber-400 tracking-wider">0987654321</p>
-                            <button onClick={() => copyToClipboard('0987654321', 'No. Rekening Mandiri')} className="p-2.5 bg-slate-900 rounded-lg border border-slate-700 hover:border-amber-500 transition-all"><DocumentDuplicateIcon className="w-5 h-5 text-slate-400 group-hover:text-amber-400" /></button>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -496,8 +501,8 @@ export default function PaymentPage() {
                     </h2>
                     <p className="text-slate-400 text-xs mb-6 leading-relaxed">
                       {isPelunasan 
-                        ? 'Harap upload bukti transfer pelunasan agar pesanan dapat segera dikirim.' 
-                        : 'Pesanan diproses setelah verifikasi manual oleh tim kami (max 1x24 jam).'}
+                        ? 'Harap klik box di bawah untuk mengkonfirmasi bahwa Anda telah mentransfer pelunasan.' 
+                        : 'Harap klik box di bawah ini setelah mentransfer agar pesanan segera diverifikasi dan diproses.'}
                     </p>
                     
                     <div className="relative">
@@ -511,8 +516,8 @@ export default function PaymentPage() {
                              <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mb-4 border border-slate-600 group-hover:border-blue-500 transition-colors">
                                 <QrCodeIcon className="w-8 h-8 text-slate-300 group-hover:text-blue-400" />
                              </div>
-                             <p className="text-sm font-bold text-slate-200 mb-1">Klik atau Seret File</p>
-                             <p className="text-xs text-slate-500">PNG, JPG, atau PDF (Max 5MB)</p>
+                             <p className="text-sm font-bold text-slate-200 mb-1">Klik di Sini Jika Sudah Transfer</p>
+                             <p className="text-xs text-slate-500">Pilih file / screenshot bukti transaksi</p>
                           </div>
                         )}
                       </div>
@@ -542,10 +547,9 @@ export default function PaymentPage() {
                 </p>
                 
                 <div className="flex flex-col gap-4 relative z-10 max-w-md mx-auto">
-                  {/* Tombol Konfirmasi WA */}
+                  {/* 🟢 TOMBOL KONFIRMASI WA MENGGUNAKAN NOMOR DINAMIS */}
                   <button 
                     onClick={() => {
-                      const adminPhone = '6281283433771'
                       const waMessage = `Halo Admin, saya ingin konfirmasi bahwa pesanan saya dengan Invoice: *${order?.invoiceNumber}* telah berhasil dibayar. Mohon segera diproses ya. Terima kasih! 🙏`
                       window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(waMessage)}`, '_blank')
                     }} 
@@ -554,7 +558,6 @@ export default function PaymentPage() {
                     <ChatBubbleOvalLeftEllipsisIcon className="w-6 h-6" /> Konfirmasi via WhatsApp
                   </button>
                   
-                  {/* Baris bawah untuk tombol Invoice dan Home */}
                   <div className="flex flex-col sm:flex-row gap-4">
                     <button onClick={generateInvoice} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-2xl font-bold border border-slate-600 transition-all flex justify-center items-center gap-2.5 shadow-md">
                       <DocumentArrowDownIcon className="w-5 h-5" /> Unduh Invoice PDF

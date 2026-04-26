@@ -9,31 +9,45 @@ module.exports = {
     extend: {
       colors: {
         // Palet Fintech / Dark E-commerce
-        primary: "#2563EB",   // Blue 600 - Biru utama yang profesional & dapat dipercaya
-        secondary: "#1E293B", // Slate 800 - Warna gelap kebiruan untuk background kartu/elemen
-        accent: "#38BDF8",    // Sky 400 - Biru neon terang untuk aksen dan efek glow
-        darkbg: "#0B1120",    // Deep Navy - Warna latar belakang utama website
+        primary: "#2563EB",   // Blue 600
+        secondary: "#1E293B", // Slate 800
+        accent: "#38BDF8",    // Sky 400
+        darkbg: "#0B1120",    // Deep Navy
       },
 
       borderRadius: {
-        // Dibuat sedikit lebih tegas (kurang membulat) untuk kesan serius & premium
         xl: "12px",
         "2xl": "16px",
         "3xl": "24px",
       },
 
+      // 🟢 KONFIGURASI ANIMASI BARU
+      animation: {
+        'gradient-x': 'gradient-x 3s ease infinite',
+        'shimmer': 'shimmer 2s infinite linear',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+
+      // 🟢 KEYFRAMES UNTUK BANNER ELEGAN
+      keyframes: {
+        'gradient-x': {
+          '0%, 100%': { 'background-size': '200% 200%', 'background-position': 'left center' },
+          '50%': { 'background-size': '200% 200%', 'background-position': 'right center' },
+        },
+        'shimmer': {
+          '0%': { 'transform': 'translateX(-100%)' },
+          '100%': { 'transform': 'translateX(100%)' },
+        }
+      },
+
       boxShadow: {
-        // Bayangan disesuaikan untuk Dark Mode (menggunakan alpha hitam yang lebih pekat)
         soft: "0 10px 30px rgba(0, 0, 0, 0.5)",
-        // Efek cahaya berpendar khas UI modern / Web3 / Fintech
         glow: "0 0 20px rgba(37, 99, 235, 0.3)", 
         glowStrong: "0 0 30px rgba(56, 189, 248, 0.5)",
-        // Efek bayangan kaca (glassmorphism) dengan pantulan cahaya tipis di atas (inset)
         glass: "0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
       },
 
       backgroundImage: {
-        // Utility tambahan untuk mempermudah pembuatan efek glass dan gradient
         'glass-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%)',
       }
     },

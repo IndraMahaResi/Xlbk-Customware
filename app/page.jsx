@@ -30,320 +30,427 @@ const CategoryIcons = {
 
 export default function Home() {
   const [products, setProducts] = useState([])
+  const [hasilKarya, setHasilKarya] = useState([])
+  const [promos, setPromos] = useState([])
+  const [settings, setSettings] = useState(null)
   const [loading, setLoading] = useState(true)
-  
-  // State untuk Testimoni
   const [testimonials, setTestimonials] = useState([])
   const [featuredTestimonials, setFeaturedTestimonials] = useState([])
   const [testimonialsLoading, setTestimonialsLoading] = useState(true)
+  const [showBanner, setShowBanner] = useState(true)
+  
+  // 🟢 STATE BARU: Menyimpan item yang di-klik untuk di-zoom (Modal)
+  const [selectedItem, setSelectedItem] = useState(null)
 
   useEffect(() => {
-    fetchProducts()
-    fetchTestimonials()
+    const fetchData = async () => {
+      try {
+        setTestimonialsLoading(true)
+        const [prodRes, karyaRes, promoRes, setRes, testRes, featTestRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/hasil-karya'),
+          fetch('/api/promo'),
+          fetch('/api/settings'),
+          fetch('/api/testimonials?approved=true'),
+          fetch('/api/testimonials?featured=true')
+        ])
+
+        if (prodRes.ok) {
+          const prodData = await prodRes.json()
+          setProducts(prodData.slice(0, 6))
+        }
+        
+        if (karyaRes.ok) {
+          const karyaData = await karyaRes.json()
+          setHasilKarya(karyaData.slice(0, 8))
+        }
+
+        if (promoRes.ok) setPromos(await promoRes.json())
+        if (setRes.ok) setSettings(await setRes.json())
+        
+        if (testRes.ok) {
+          const testData = await testRes.json()
+          setTestimonials(testData.slice(0, 6))
+        }
+
+        if (featTestRes.ok) {
+          const featData = await featTestRes.json()
+          setFeaturedTestimonials(featData.slice(0, 3))
+        }
+
+      } catch (err) {
+        console.error("Fetch error:", err)
+      } finally {
+        setLoading(false)
+        setTestimonialsLoading(false)
+      }
+    }
+    fetchData()
   }, [])
-
-  const fetchProducts = async () => {
-    try {
-      const res = await fetch('/api/products')
-      const data = await res.json()
-      if (data.length === 0) {
-          setProducts([])
-      } else {
-          setProducts(data.slice(0, 6)) // Hanya tampilkan 6 produk di beranda
-      }
-    } catch (error) {
-      console.error('Failed to fetch products:', error)
-      setProducts([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchTestimonials = async () => {
-    try {
-      const res = await fetch('/api/testimonials')
-      if (res.ok) {
-        const data = await res.json()
-        setTestimonials(data.slice(0, 6))
-      } else {
-        throw new Error('API not ready')
-      }
-      
-      const featuredRes = await fetch('/api/testimonials?featured=true')
-      if (featuredRes.ok) {
-        const featuredData = await featuredRes.json()
-        setFeaturedTestimonials(featuredData.slice(0, 3))
-      }
-    } catch (error) {
-      console.error('Failed to fetch testimonials, using fallback data:', error)
-      // Fallback Data untuk Preview jika API belum jadi
-      const mockTestimonials = [
-        { id: 1, name: 'Budi Santoso', role: 'CEO TechStartup', content: 'Kualitas sablon sangat memuaskan, warnanya keluar dan detail. Proses pesanan partai besar via USDT juga sangat lancar!', rating: 5 },
-        { id: 2, name: 'Siti Rahmawati', role: 'Event Organizer', content: 'Pesan ratusan tumbler custom untuk acara kantor. Pengerjaan cepat dan hasilnya persis seperti desain mock-up.', rating: 5 },
-        { id: 3, name: 'Andi Pratama', role: 'Clothing Brand Owner', content: 'Bahan kaos premium combed 30s-nya benar-benar terasa mahal. Jahitan rapi, tidak ada reject sama sekali.', rating: 4.8 }
-      ]
-      setFeaturedTestimonials(mockTestimonials)
-      setTestimonials([])
-    } finally {
-      setTestimonialsLoading(false)
-    }
-  }
 
   return (
     <>
       <Navbar />
 
-      {/* =========================================
-          HERO SECTION - Web3 / Fintech Vibe dengan Background Image
-          ========================================= */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden z-10 pt-20">
-        
-        {/* 🔥 PERBAIKAN: Menghapus mix-blend-luminosity dan menaikkan opacity ke 40 */}
-        <div 
+      {/* 🟢 TOP PROMO BANNER (Dinamis dari Settings) */}
+      {settings?.promoActive && showBanner && (
+        <div className="fixed top-20 inset-x-0 z-[60] px-4 md:px-6 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="max-w-5xl mx-auto relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
+
+            <div className="relative bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-1 overflow-hidden shadow-2xl">
+              <div className="bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-blue-600/10 flex items-center justify-between px-4 py-3 md:px-8">
+                <div className="flex items-center gap-3">
+                  <div className="hidden md:flex w-10 h-10 rounded-xl bg-blue-600/20 items-center justify-center text-xl animate-pulse">
+                    🚀
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-white text-sm md:text-base font-bold tracking-tight">
+                      {settings.promoMessage}
+                    </p>
+                    <p className="text-blue-400 text-[10px] uppercase font-black tracking-[0.2em]">
+                      Limited Time Offer
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {settings.promoLink && (
+                    <Link
+                      href={settings.promoLink}
+                      className="relative inline-flex items-center justify-center px-5 py-2 overflow-hidden font-bold text-white transition-all duration-300 bg-blue-600 rounded-xl group/btn hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+                    >
+                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shimmer"></span>
+                      <span className="relative text-xs md:text-sm">
+                        {settings.promoButtonText || "Ambil Sekarang"}
+                      </span>
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => setShowBanner(false)}
+                    className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2.5}
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="h-[2px] w-full bg-slate-800">
+                <div className="h-full bg-gradient-to-r from-blue-600 to-indigo-400 animate-gradient-x"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HERO SECTION */}
+      <section
+        className={`relative min-h-[90vh] flex items-center justify-center overflow-hidden z-10 ${!settings?.promoActive ? "pt-20" : ""}`}
+      >
+        <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')" }}
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')",
+          }}
         ></div>
-        
-        {/* 🔥 PERBAIKAN: Membuat bagian tengah overlay lebih transparan (slate-950/50) */}
+
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-950 via-slate-950/50 to-slate-950"></div>
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
-        {/* Content Hero */}
         <div className="relative max-w-7xl mx-auto px-6 py-20 text-center z-10">
-          
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/80 border border-blue-500/30 text-blue-400 text-sm font-medium mb-8 backdrop-blur-md shadow-[0_0_15px_rgba(37,99,235,0.15)]">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             Borderless Custom Merchandise
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-blue-400 drop-shadow-lg">
+          <h1 className="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-blue-400 drop-shadow-lg leading-tight">
             Wujudkan Desainmu, <br className="hidden md:block" />
             Bayar Tanpa Batasan.
           </h1>
 
           <p className="text-lg md:text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
-            Platform cetak merchandise premium pertama yang mendukung pembayaran fiat dan <span className="text-white font-bold border-b border-blue-500">Cryptocurrency</span>. Mulai dari satuan hingga partai besar, proses cepat dan presisi.
+            Platform cetak merchandise premium pertama yang mendukung pembayaran
+            fiat dan{" "}
+            <span className="text-white font-bold border-b border-blue-500">
+              Cryptocurrency
+            </span>
+            . Mulai dari satuan hingga partai besar.
           </p>
 
           <div className="flex justify-center gap-4 flex-wrap mb-10">
             <Link
               href="/products"
-              className="px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 
-              transition-all duration-300 font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] flex items-center gap-2"
+              className="px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 transition-all duration-300 font-bold text-white shadow-glow flex items-center gap-2"
             >
               Mulai Custom Sekarang
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                />
               </svg>
             </Link>
-
             <Link
               href="/products"
-              className="px-8 py-4 rounded-xl border border-slate-600 bg-slate-900/60 backdrop-blur-md
-              hover:bg-slate-800 hover:border-slate-500 text-slate-200 transition-all duration-300 font-bold"
+              className="px-8 py-4 rounded-xl border border-slate-600 bg-slate-900/60 backdrop-blur-md hover:bg-slate-800 hover:border-slate-500 text-slate-200 transition-all duration-300 font-bold"
             >
               Lihat Katalog
             </Link>
           </div>
-
-          {/* Supported Payments Strip */}
-          <div className="flex flex-col items-center justify-center gap-4 mt-16 opacity-90">
-            <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase">Supported Payments</p>
-            <div className="flex items-center gap-6 text-slate-300 bg-slate-900/40 px-6 py-3 rounded-full backdrop-blur-sm border border-slate-800/50">
-              <div className="flex items-center gap-1.5 hover:text-white transition-colors">
-                <span className="font-bold text-lg">QRIS</span>
-              </div>
-              <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
-              <div className="flex items-center gap-1.5 hover:text-[#F7931A] transition-colors cursor-pointer" title="Bitcoin Accepted">
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M14.077 10.278c1.076-.23 1.884-.852 1.884-2.181 0-1.853-1.464-2.458-3.56-2.458H10.15V2h-1.87v3.639H6.942V2h-1.87v3.639H2v1.87h1.411c.883 0 1.25.437 1.25 1.118v7.243c0 .351-.122.846-1.01.846H2v1.87h3.082v3.744h1.87v-3.744h1.338v3.744h1.87v-3.744c2.616 0 4.316-.763 4.316-3.085 0-1.503-1.042-2.441-2.399-2.614zm-2.584-2.903h1.498c.845 0 1.543.344 1.543 1.157 0 .863-.787 1.178-1.543 1.178h-1.498V7.375zm1.751 7.424h-1.751v-2.348h1.751c.969 0 1.77.382 1.77 1.222 0 .839-.81 1.126-1.77 1.126z"/></svg>
-                <span className="font-bold text-lg tracking-wide">BTC</span>
-              </div>
-              <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
-              <div className="flex items-center gap-1.5 hover:text-[#26A17B] transition-colors cursor-pointer" title="Tether USDT Accepted">
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 24c6.627 0 12-5.373 12-12S18.627 0 12 0 0 5.373 0 12s5.373 12 12 12zM13.682 10.42v6.23h-3.364v-6.23H6.077V7.124h11.846v3.296h-4.241z"/></svg>
-                <span className="font-bold text-lg tracking-wide">USDT</span>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* =========================================
-          STATS SECTION
-          ========================================= */}
+      {/* STATS SECTION */}
       <section className="relative z-20 -mt-16 mb-24 px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto text-center">
           {[
-            { num: 'Fleksibel', label: 'Bebas Minimum Order', desc: 'Satu pcs pun kami kerjakan dengan kualitas terbaik.' },
-            { num: 'Secure Pay', label: 'Crypto & Fiat Ready', desc: 'Transaksi aman, cepat, dan transparan via USDT/BTC.' },
-            { num: 'Presisi', label: 'Quality Control Ketat', desc: 'Hasil cetak tajam sesuai dengan desain asli Anda.' }
+            {
+              num: "Fleksibel",
+              label: "Bebas Minimum Order",
+              desc: "Satu pcs pun kami kerjakan dengan kualitas terbaik.",
+            },
+            {
+              num: "Secure Pay",
+              label: "Crypto & Fiat Ready",
+              desc: "Transaksi aman, cepat, dan transparan via USDT/BTC.",
+            },
+            {
+              num: "Presisi",
+              label: "Quality Control Ketat",
+              desc: "Hasil cetak tajam sesuai dengan desain asli Anda.",
+            },
           ].map((stat, idx) => (
-            <div key={idx} className="p-8 rounded-3xl bg-slate-900/80 border border-slate-700/80 backdrop-blur-xl shadow-2xl hover:-translate-y-1 hover:border-blue-500/30 transition-all duration-300">
-              <h3 className="text-2xl font-extrabold text-slate-100 mb-2">{stat.num}</h3>
-              <p className="text-blue-400 font-bold text-sm uppercase tracking-wider mb-3">{stat.label}</p>
-              <p className="text-slate-400 text-sm leading-relaxed">{stat.desc}</p>
+            <div
+              key={idx}
+              className="p-8 rounded-3xl bg-slate-900/80 border border-slate-700/80 backdrop-blur-xl shadow-2xl hover:-translate-y-1 hover:border-blue-500/30 transition-all duration-300"
+            >
+              <h3 className="text-2xl font-extrabold text-slate-100 mb-2">
+                {stat.num}
+              </h3>
+              <p className="text-blue-400 font-bold text-sm uppercase tracking-wider mb-3">
+                {stat.label}
+              </p>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                {stat.desc}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* =========================================
-          CATEGORIES SECTION
-          ========================================= */}
-      <section className="py-24 relative z-10 border-t border-slate-800/50 bg-slate-900/10">
+      {/* 🟢 SECTION: PROMO & EVENT TERBARU (Horizontal Scroll / Slider) */}
+      {promos.length > 0 && (
+        <section className="py-20 relative z-10 px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex justify-between items-end mb-10">
+              <div>
+                <h2 className="text-3xl font-bold text-white mb-2">
+                  Event & Promo
+                </h2>
+                <div className="w-12 h-1 bg-rose-500 rounded-full"></div>
+              </div>
+            </div>
+
+            {/* Wrapper Slider Horizontal */}
+            <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 -mx-6 px-6 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {promos.map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => setSelectedItem(p)} // 🟢 Fungsi Klik memanggil Modal
+                  className="shrink-0 snap-center w-[85vw] sm:w-[350px] md:w-[400px] group relative bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden hover:border-rose-500/50 transition-all shadow-xl cursor-pointer"
+                >
+                  <div className="aspect-video relative overflow-hidden">
+                    <Image
+                      src={p.imageUrl}
+                      alt={p.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    {p.badge && (
+                      <span className="absolute top-4 left-4 bg-rose-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase shadow-lg">
+                        {p.badge}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      {p.title}
+                    </h3>
+                    {p.description && (
+                      <p className="text-slate-400 text-sm line-clamp-2">
+                        {p.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 🟢 SECTION: HASIL KARYA (Horizontal Scroll / Slider) */}
+      {hasilKarya.length > 0 && (
+        <section className="py-24 relative z-10 border-t border-slate-800/50 bg-slate-900/10">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex flex-col items-center mb-14 text-center">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-100 mb-4">
+                Hasil Karya Kami
+              </h2>
+              <div className="w-20 h-1 bg-blue-600 rounded-full mx-auto"></div>
+              <p className="mt-4 text-slate-400 max-w-xl">
+                Geser untuk melihat portofolio produksi terbaik yang telah kami
+                kerjakan.
+              </p>
+            </div>
+
+            {/* Wrapper Slider Horizontal */}
+            <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 md:gap-6 pb-8 -mx-6 px-6 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {hasilKarya.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedItem({ ...item, badge: null })} // 🟢 Fungsi Klik memanggil Modal
+                  className="shrink-0 snap-center w-[60vw] sm:w-[250px] md:w-[280px] group relative rounded-2xl overflow-hidden aspect-square bg-slate-800 border border-slate-700 cursor-pointer"
+                >
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.title}
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-500 pointer-events-none"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                    <h3 className="text-white font-bold text-sm md:text-base leading-tight">
+                      {item.title}
+                    </h3>
+                    {item.description && (
+                      <p className="text-slate-300 text-[11px] mt-1 line-clamp-2 hidden sm:block">
+                        {item.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* CATEGORIES SECTION */}
+      <section className="py-24 relative z-10 border-t border-slate-800/50 bg-slate-900/20">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col items-center mb-14">
+          <div className="flex flex-col items-center mb-14 text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-100 mb-4">
               Pilih Base Produk Anda
             </h2>
             <div className="w-20 h-1 bg-blue-600 rounded-full"></div>
-            <p className="mt-4 text-slate-400 text-center max-w-xl">
-              Dari apparel premium hingga souvenir eksklusif. Siapkan desain Anda dan biarkan kami yang mengeksekusinya.
+            <p className="mt-4 text-slate-400 max-w-xl">
+              Dari apparel premium hingga souvenir eksklusif.
             </p>
           </div>
-
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {['KAOS', 'MUG', 'TUMBLER', 'TOTEBAG', 'BAJU', 'SOUVENIR'].map((category) => (
+            {Object.keys(CategoryIcons).map((cat) => (
               <Link
-                key={category}
-                href={`/products?category=${category}`}
-                className="group flex flex-col items-center justify-center p-6 bg-slate-800/30 border border-slate-700/50
-                rounded-2xl hover:bg-slate-800/80 hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(37,99,235,0.15)] hover:-translate-y-1 transition-all duration-300"
+                key={cat}
+                href={`/products?category=${cat}`}
+                className="group flex flex-col items-center justify-center p-6 bg-slate-800/30 border border-slate-700/50 rounded-2xl hover:bg-slate-800/80 hover:border-blue-500/50 transition-all"
               >
-                <div className="text-slate-400 group-hover:text-blue-400 mb-4 transition-colors duration-300">
-                    {CategoryIcons[category] || CategoryIcons['SOUVENIR']}
+                <div className="text-slate-400 group-hover:text-blue-400 mb-4 transition-colors">
+                  {CategoryIcons[cat]}
                 </div>
-                <h3 className="text-sm font-semibold text-slate-200 group-hover:text-slate-100 mb-1 transition-colors">
-                  {category}
-                </h3>
+                <h3 className="text-sm font-semibold text-slate-200">{cat}</h3>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* =========================================
-          FEATURED PRODUCTS SECTION
-          ========================================= */}
+      {/* CATALOG SECTION */}
       <section className="py-24 relative z-10 border-t border-slate-800/50">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col items-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-100 mb-4">
-              Katalog Terpopuler
-            </h2>
-            <div className="w-20 h-1 bg-blue-600 rounded-full"></div>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center items-center h-40">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-4 text-center md:text-left">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-100 mb-4">
+                Katalog Terpopuler
+              </h2>
+              <div className="w-20 h-1 bg-blue-600 rounded-full mx-auto md:mx-0"></div>
             </div>
-          ) : (
-            <>
-              {products.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {products.map((product) => (
-                    <div key={product.id} className="h-full">
-                       <ProductCard product={product} />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-slate-500">Belum ada produk yang tersedia.</p>
-                </div>
-              )}
-            </>
-          )}
-
-          <div className="text-center mt-16">
             <Link
               href="/products"
-              className="inline-flex items-center gap-2 px-8 py-3 rounded-xl border border-slate-700 bg-slate-800/30
-              text-blue-400 hover:bg-blue-600 hover:border-blue-500 hover:text-white
-              transition-all duration-300 font-medium"
+              className="text-blue-400 font-bold hover:text-blue-300 transition-colors flex items-center gap-2"
             >
-              Eksplorasi Semua Produk
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
+              Lihat Semua <span>→</span>
             </Link>
           </div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-80 bg-slate-900 animate-pulse rounded-3xl border border-slate-800"
+                ></div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* =========================================
-          TESTIMONIALS SECTION
-          ========================================= */}
-      <section className="py-24 relative z-10 border-t border-slate-800/50 bg-slate-900/20">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col items-center mb-14">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium mb-4">
-              <span className="text-lg">⭐</span>
-              Testimoni Pelanggan
-            </div>
+      {/* TESTIMONIALS SECTION */}
+      <section className="py-24 relative z-10 border-t border-slate-800/50 bg-slate-900/20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col items-center mb-14 text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-100 mb-4">
               Apa Kata Mereka?
             </h2>
             <div className="w-20 h-1 bg-blue-600 rounded-full"></div>
-            <p className="mt-4 text-slate-400 text-center max-w-xl">
-              Lebih dari 1000+ pelanggan puas dengan layanan custom printing kami.
-            </p>
           </div>
 
-          {/* Featured Testimonials (Highlight) */}
           {featuredTestimonials.length > 0 && (
-            <div className="mb-12">
-              <h3 className="text-xl font-semibold text-slate-200 mb-6 text-center">
-                🌟 Testimoni Unggulan
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {featuredTestimonials.map((testimonial) => (
-                  <TestimonialCard 
-                    key={testimonial.id} 
-                    testimonial={testimonial} 
-                    featured={true}
-                  />
-                ))}
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              {featuredTestimonials.map((t) => (
+                <TestimonialCard key={t.id} testimonial={t} featured={true} />
+              ))}
             </div>
           )}
 
-          {/* All Testimonials Grid */}
           {testimonialsLoading ? (
             <div className="flex justify-center items-center h-40">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-blue-500"></div>
             </div>
-          ) : testimonials.length > 0 ? (
-            <>
-              <h3 className="text-xl font-semibold text-slate-200 mb-6 text-center">
-                Testimoni Lainnya
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {testimonials.map((testimonial) => (
-                  <TestimonialCard 
-                    key={testimonial.id} 
-                    testimonial={testimonial}
-                  />
-                ))}
-              </div>
-            </>
-          ) : null}
-
-          {/* Add Testimonial Button */}
-          <div className="text-center mt-12">
-            <Link
-              href="/submit-testimonial"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-700 bg-slate-800/30
-              text-slate-300 hover:bg-blue-600 hover:border-blue-500 hover:text-white
-              transition-all duration-300 font-medium"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Berikan Testimoni
-            </Link>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {testimonials.map((t) => (
+                <TestimonialCard key={t.id} testimonial={t} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -353,17 +460,18 @@ export default function Home() {
       <section className="py-24 relative z-10 px-6 border-t border-slate-800/50 bg-slate-900/20">
         <div className="max-w-5xl mx-auto">
           <div className="relative rounded-3xl overflow-hidden bg-slate-800/50 border border-slate-700/50 p-10 md:p-16 text-center shadow-2xl backdrop-blur-sm">
-            
-            {/* Inner Glow - Greenish/Blueish for Crypto Vibe */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-slate-800/50 to-[#26A17B]/10 pointer-events-none"></div>
 
             <div className="relative z-10">
               <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-100">
                 Siap Mencetak Ide Anda?
               </h2>
-              
+
               <p className="text-lg text-slate-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-                Kami menangani pesanan satuan hingga pengadaan B2B partai besar. Fleksibel, cepat, dan menerima pembayaran global melalui <span className="text-[#F7931A] font-bold">Bitcoin</span> maupun <span className="text-[#26A17B] font-bold">USDT Tether</span>.
+                Kami menangani pesanan satuan hingga pengadaan B2B partai besar.
+                Fleksibel, cepat, dan menerima pembayaran global melalui{" "}
+                <span className="text-[#F7931A] font-bold">Bitcoin</span> maupun{" "}
+                <span className="text-[#26A17B] font-bold">USDT Tether</span>.
               </p>
 
               <div className="flex justify-center gap-4 flex-wrap">
@@ -384,6 +492,56 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* 🟢 MODAL ZOOM IMAGE (Untuk Promo & Hasil Karya) */}
+      {selectedItem && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300"
+          onClick={() => setSelectedItem(null)} 
+        >
+          <div 
+            className="relative w-full max-w-4xl bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()} 
+          >
+            {/* Tombol Close */}
+            <button 
+              className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full backdrop-blur-md transition-colors shadow-lg"
+              onClick={() => setSelectedItem(null)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Gambar Besar */}
+            <div className="relative w-full flex-1 min-h-[40vh] md:min-h-[50vh] bg-slate-950/50 flex items-center justify-center">
+              <Image 
+                src={selectedItem.imageUrl} 
+                alt={selectedItem.title} 
+                fill 
+                className="object-contain" 
+              />
+              {selectedItem.badge && (
+                <span className="absolute top-4 left-4 bg-rose-600 text-white text-xs sm:text-sm font-black px-4 py-1.5 rounded-full uppercase shadow-lg">
+                  {selectedItem.badge}
+                </span>
+              )}
+            </div>
+            
+            {/* Teks Deskripsi */}
+            <div className="p-6 md:p-8 bg-slate-900 border-t border-slate-800 shrink-0 overflow-y-auto">
+              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-3">{selectedItem.title}</h3>
+              {selectedItem.description ? (
+                <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                  {selectedItem.description}
+                </p>
+              ) : (
+                <p className="text-slate-500 italic text-sm">Tidak ada deskripsi tambahan.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
-  )
+  );
 }
