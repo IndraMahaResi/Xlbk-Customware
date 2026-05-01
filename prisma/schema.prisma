@@ -189,6 +189,7 @@ model StoreSettings {
   // Kontak Dasar & Lokasi
   whatsapp        String?  
   email           String?  
+  address         String?  @db.Text
   gmapsEmbed      String?  @db.Text 
   
   // Pembayaran: QRIS & Crypto (Statis, biasanya hanya 1)

@@ -303,17 +303,28 @@ export default function PaymentPage() {
              </div>
           ) : !isPaid ? (
             <div className="animate-in fade-in slide-in-from-bottom-8 duration-500">
-              <div className="text-center mb-10">
+              <div className="text-center mb-10 flex flex-col items-center">
                 <h1 className="text-3xl md:text-5xl font-extrabold text-slate-100 mb-4 tracking-tight">
                   {isPelunasan ? 'Selesaikan Pelunasan' : 'Selesaikan Pembayaran'}
                 </h1>
-                <p className="text-slate-400 text-lg">
+                <p className="text-slate-400 text-lg mb-4">
                   Invoice <span className="font-mono text-blue-400 font-bold">#{order?.invoiceNumber || params?.orderId?.slice(0,8).toUpperCase()}</span>
                 </p>
+
+                <button 
+                  onClick={generateInvoice}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-800/50 hover:bg-slate-700 text-blue-400 border border-slate-700 hover:border-blue-500 rounded-xl text-sm font-bold transition-all shadow-sm mb-2"
+                >
+                  <DocumentArrowDownIcon className="w-5 h-5" />
+                  Unduh / Lihat Invoice
+                </button>
+
                 {isPelunasan && (
-                  <span className="inline-flex items-center gap-1 mt-3 px-4 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider rounded-full shadow-lg shadow-amber-500/10">
-                    <CheckCircleIcon className="w-4 h-4" /> Mode Pembayaran Pelunasan
-                  </span>
+                  <div className="mt-4">
+                    <span className="inline-flex items-center gap-1 px-4 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider rounded-full shadow-lg shadow-amber-500/10">
+                      <CheckCircleIcon className="w-4 h-4" /> Mode Pembayaran Pelunasan
+                    </span>
+                  </div>
                 )}
               </div>
 
@@ -499,6 +510,15 @@ export default function PaymentPage() {
                        <DocumentArrowDownIcon className="w-5 h-5 text-blue-400"/>
                        {isPelunasan ? 'Upload Bukti Pelunasan' : 'Upload Bukti Transfer'}
                     </h2>
+                    
+                    {/* 🟢 NOTE PERINGATAN DOWNLOAD INVOICE */}
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-5 flex items-start gap-3">
+                       <span className="text-xl leading-none">💡</span>
+                       <p className="text-blue-400 text-xs">
+                         <strong>PENTING:</strong> Pastikan Anda telah mengunduh <strong>Invoice</strong> (tombol di atas) sebagai referensi dan bukti tagihan sebelum Anda mengkonfirmasi transfer di bawah ini.
+                       </p>
+                    </div>
+
                     <p className="text-slate-400 text-xs mb-6 leading-relaxed">
                       {isPelunasan 
                         ? 'Harap klik box di bawah untuk mengkonfirmasi bahwa Anda telah mentransfer pelunasan.' 
@@ -536,18 +556,22 @@ export default function PaymentPage() {
                   <CheckCircleIcon className="w-14 h-14 text-emerald-400" />
                 </div>
                 
-                <h1 className="text-4xl font-black text-white mb-4 tracking-tight relative z-10">
-                  {currentPayStatus === 'PAID' ? 'Pembayaran LUNAS!' : 'Pembayaran DP Diterima!'}
+                {/* 🟢 REVISI UTAMA: LOGIKA TEKS HALAMAN SUKSES DIPERBAIKI */}
+                <h1 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight relative z-10">
+                  {currentPayStatus === 'PAID' 
+                    ? 'Pembayaran LUNAS!' 
+                    : (activePaymentType === 'FULL' ? 'Bukti Transfer Diterima!' : 'Pembayaran DP Diterima!')}
                 </h1>
                 
                 <p className="text-slate-400 mb-12 max-w-lg mx-auto relative z-10">
                   {currentPayStatus === 'PAID' 
-                    ? `Terima kasih. Pesanan Anda #${order?.invoiceNumber} telah dibayar lunas.`
-                    : `Terima kasih. DP Anda untuk pesanan #${order?.invoiceNumber} telah diverifikasi. Anda dapat melunasi sisa tagihan kapan saja melalui menu Cek Tagihan.`}
+                    ? `Terima kasih. Pesanan Anda #${order?.invoiceNumber} telah dibayar lunas sepenuhnya.`
+                    : (activePaymentType === 'FULL'
+                        ? `Terima kasih. Bukti transfer pembayaran penuh untuk pesanan #${order?.invoiceNumber} telah kami terima dan akan segera diproses oleh Admin.`
+                        : `Terima kasih. DP Anda untuk pesanan #${order?.invoiceNumber} telah diverifikasi. Anda dapat melunasi sisa tagihan kapan saja melalui menu Cek Tagihan.`)}
                 </p>
                 
                 <div className="flex flex-col gap-4 relative z-10 max-w-md mx-auto">
-                  {/* 🟢 TOMBOL KONFIRMASI WA MENGGUNAKAN NOMOR DINAMIS */}
                   <button 
                     onClick={() => {
                       const waMessage = `Halo Admin, saya ingin konfirmasi bahwa pesanan saya dengan Invoice: *${order?.invoiceNumber}* telah berhasil dibayar. Mohon segera diproses ya. Terima kasih! 🙏`

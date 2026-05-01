@@ -9,7 +9,8 @@ import {
   PhoneIcon,
   CheckCircleIcon,
   BanknotesIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  DocumentArrowDownIcon
 } from '@heroicons/react/24/outline'
 
 export default function PelunasanPage() {
@@ -53,8 +54,38 @@ export default function PelunasanPage() {
     }
   }
 
-  const handleProceedToPayment = async () => {
-    router.push(`/payment/${foundOrder.id}?type=pelunasan`)
+  // 🟢 Fungsi untuk route ke halaman pembayaran
+  const handleProceedToPayment = (actionType) => {
+    if (actionType === 'PELUNASAN') {
+      router.push(`/payment/${foundOrder.id}?type=pelunasan`)
+    } else {
+      router.push(`/payment/${foundOrder.id}`) // Untuk bayar awal (DP maupun Full)
+    }
+  }
+
+  // 🟢 FUNGSI DOWNLOAD INVOICE PDF LANGSUNG
+  const generateInvoice = async () => {
+    if (!foundOrder) return;
+    try {
+      const toastId = toast.loading('Mempersiapkan dokumen...');
+      const res = await fetch(`/api/orders/${foundOrder.id}/invoice`);
+      
+      if (!res.ok) throw new Error('Gagal dari server');
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Invoice_XLBK_${foundOrder.invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('Invoice berhasil diunduh!', { id: toastId });
+    } catch (error) {
+      toast.error('Gagal mengunduh invoice. Pastikan API Invoice sudah ada.');
+    }
   }
 
   return (
@@ -75,10 +106,10 @@ export default function PelunasanPage() {
                <BanknotesIcon className="w-8 h-8" />
             </div>
             <h1 className="text-3xl md:text-5xl font-extrabold text-slate-100 tracking-tight mb-4">
-              Cek & <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-sky-400">Pelunasan</span> Tagihan
+              Cek & <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-sky-400">Status</span> Tagihan
             </h1>
             <p className="text-slate-400 text-lg max-w-xl mx-auto">
-              Masukkan Nomor Invoice dan Nomor WhatsApp yang Anda gunakan saat memesan untuk melihat sisa tagihan Anda.
+              Masukkan Nomor Invoice dan Nomor WhatsApp yang Anda gunakan saat memesan untuk melihat status dan sisa tagihan Anda.
             </p>
           </div>
 
@@ -134,27 +165,41 @@ export default function PelunasanPage() {
             {/* HASIL PENCARIAN */}
             {foundOrder && (
               <div className="mt-8 border-t border-slate-700/50 pt-8 animate-in fade-in duration-500">
-                <div className="flex justify-between items-start mb-6">
+                
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-6 gap-4">
                   <div>
                     <h3 className="text-xl font-bold text-slate-100 mb-1">Detail Pesanan</h3>
                     <p className="text-slate-400 text-sm">A.n <span className="font-bold text-slate-200">{foundOrder.customerName}</span></p>
                   </div>
-                  <div className="text-right">
-                    <span className="inline-block px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
-                      {foundOrder.paymentType} PAYMENT
-                    </span>
-                    <br/>
-                    {/* 🟢 REVISI: Badge Status lebih pintar */}
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${
-                        foundOrder.paymentStatus === 'PAID' 
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                          : foundOrder.paymentStatus === 'VERIFIED'
-                          ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-                          : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                    }`}>
-                      {foundOrder.paymentStatus === 'PAID' && <CheckCircleIcon className="w-3 h-3"/>}
-                      {foundOrder.paymentStatus === 'VERIFIED' ? 'DP DITERIMA' : foundOrder.paymentStatus}
-                    </span>
+                  <div className="flex flex-col items-start md:items-end gap-2">
+                    <div className="text-left md:text-right">
+                      <span className="inline-block px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                        {foundOrder.paymentType} PAYMENT
+                      </span>
+                      <br/>
+                      {/* 🟢 BADGE STATUS */}
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${
+                          foundOrder.paymentStatus === 'PAID' 
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            : foundOrder.paymentStatus === 'VERIFIED'
+                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                      }`}>
+                        {foundOrder.paymentStatus === 'PAID' && <CheckCircleIcon className="w-3 h-3"/>}
+                        {foundOrder.paymentStatus === 'PAID' ? 'LUNAS'
+                          : foundOrder.paymentStatus === 'VERIFIED' 
+                            ? (foundOrder.paymentType === 'FULL' ? 'MENUNGGU KONFIRMASI' : 'DP DITERIMA') 
+                            : foundOrder.paymentStatus}
+                      </span>
+                    </div>
+                    {/* 🟢 TOMBOL UNDUH INVOICE */}
+                    <button
+                      onClick={generateInvoice}
+                      className="inline-flex items-center gap-2 px-4 py-2 mt-2 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 hover:border-slate-600 rounded-xl text-sm font-medium transition-all"
+                    >
+                      <DocumentArrowDownIcon className="w-4 h-4" />
+                      Lihat / Unduh Invoice
+                    </button>
                   </div>
                 </div>
 
@@ -169,39 +214,76 @@ export default function PelunasanPage() {
                   </div>
                   <div className="mt-4 pt-4 border-t border-slate-700/50 space-y-2">
                     <div className="flex justify-between text-sm text-slate-400">
-                      <span>Total Harga Barang</span>
+                      <span>Total Harga Asli</span>
                       <span>Rp {foundOrder.total.toLocaleString('id-ID')}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* 🟢 REVISI UTAMA: KONDISI JIKA DP DAN BELUM LUNAS ('PAID') */}
-                {foundOrder.paymentType === 'DP' && foundOrder.paymentStatus !== 'PAID' ? (
+                {/* 🟢 4 KONDISI LOGIKA UTAMA (SANGAT AKURAT) */}
+                {foundOrder.paymentStatus === 'PAID' ? (
+                  
+                  /* KONDISI 1: SUDAH LUNAS SEPENUHNYA */
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 text-center">
+                    <CheckCircleIcon className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                    <h3 className="text-lg font-bold text-emerald-400 mb-1">Tagihan Sudah Lunas</h3>
+                    <p className="text-slate-400 text-sm">Pesanan ini tidak memiliki sisa tagihan yang harus dibayarkan.</p>
+                  </div>
+                  
+                ) : foundOrder.paymentType === 'FULL' && foundOrder.paymentStatus === 'VERIFIED' ? (
+                  
+                  /* KONDISI 2: FULL PAYMENT TAPI SEDANG DIVERIFIKASI (BUKTI SUDAH DIUPLOAD) */
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-6 text-center">
+                    <ArrowPathIcon className="w-12 h-12 text-blue-400 mx-auto mb-3 animate-spin" />
+                    <h3 className="text-lg font-bold text-blue-400 mb-1">Menunggu Konfirmasi Admin</h3>
+                    <p className="text-slate-400 text-sm">Bukti pembayaran Anda sudah kami terima dan sedang dalam pengecekan.</p>
+                  </div>
+
+                ) : foundOrder.paymentType === 'DP' && foundOrder.paymentStatus === 'VERIFIED' ? (
+                  
+                  /* KONDISI 3: PEMBAYARAN DP SUDAH DITERIMA -> TAMPILKAN TAGIHAN PELUNASAN */
                   <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-6 text-center shadow-[0_0_30px_rgba(245,158,11,0.1)] relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                       <div className="text-left">
                         <p className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-1">Sisa Tagihan (Pelunasan)</p>
-                        <p className="text-3xl font-black text-white">Rp {foundOrder.outstandingAmount.toLocaleString('id-ID')}</p>
-                        <p className="text-slate-400 text-xs mt-2">*Termasuk sisa DP 50% dan ongkos kirim (jika ada)</p>
+                        <p className="text-3xl font-black text-white">Rp {foundOrder.outstandingAmount ? foundOrder.outstandingAmount.toLocaleString('id-ID') : (foundOrder.total - foundOrder.amountPaid).toLocaleString('id-ID')}</p>
+                        <p className="text-slate-400 text-xs mt-2">*Termasuk sisa DP dan ongkos kirim (jika ada)</p>
                       </div>
                       <button
-                        onClick={handleProceedToPayment}
+                        onClick={() => handleProceedToPayment('PELUNASAN')}
                         className="w-full md:w-auto px-8 py-4 bg-amber-500 text-slate-950 font-black rounded-xl hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/20 shrink-0"
                       >
                         Bayar Pelunasan
                       </button>
                     </div>
                   </div>
-                ) : (
-                  /* KONDISI: SUDAH LUNAS ('PAID') ATAU BUKAN DP */
-                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 text-center">
-                    <CheckCircleIcon className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-                    <h3 className="text-lg font-bold text-emerald-400 mb-1">Tagihan Sudah Lunas</h3>
-                    <p className="text-slate-400 text-sm">Pesanan ini tidak memiliki sisa tagihan yang harus dibayarkan.</p>
-                  </div>
-                )}
 
+                ) : (
+                  
+                  /* KONDISI 4: BELUM BAYAR SAMA SEKALI (UNPAID/PENDING) UNTUK FULL MAUPUN DP AWAL */
+                  <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-6 text-center shadow-[0_0_30px_rgba(245,158,11,0.1)] relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="text-left">
+                        <p className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-1">
+                          {foundOrder.paymentType === 'DP' ? 'Menunggu Pembayaran DP (50%)' : 'Menunggu Pembayaran Penuh'}
+                        </p>
+                        <p className="text-3xl font-black text-white">
+                          Rp {foundOrder.paymentType === 'DP' ? (foundOrder.total / 2).toLocaleString('id-ID') : foundOrder.total.toLocaleString('id-ID')}
+                        </p>
+                        <p className="text-slate-400 text-xs mt-2">*Anda belum menyelesaikan pembayaran untuk pesanan ini.</p>
+                      </div>
+                      <button
+                        onClick={() => handleProceedToPayment('INITIAL')}
+                        className="w-full md:w-auto px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] shrink-0"
+                      >
+                        Lanjutkan Membayar
+                      </button>
+                    </div>
+                  </div>
+
+                )}
               </div>
             )}
 

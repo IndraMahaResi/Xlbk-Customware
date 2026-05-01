@@ -1,13 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
-import * as XLSX from 'xlsx'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [uploadingImage, setUploadingImage] = useState(false) // 🟢 State loading upload
   
   // 1. STATE FORM DENGAN FIELD BARU
   const [formData, setFormData] = useState({
@@ -37,6 +37,32 @@ export default function ProductsPage() {
       toast.error('Gagal memuat data produk')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 🟢 FUNGSI BARU: Handle Upload Gambar
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploadingImage(true)
+    try {
+      const uploadForm = new FormData()
+      uploadForm.append('file', file)
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadForm
+      })
+      const data = await res.json()
+      if (data.url) {
+        setFormData({ ...formData, image: data.url })
+        toast.success('Gambar produk berhasil diunggah!')
+      } else {
+        toast.error('Gagal mendapatkan link gambar')
+      }
+    } catch (err) {
+      toast.error('Terjadi kesalahan saat mengunggah gambar')
+    } finally {
+      setUploadingImage(false)
     }
   }
 
@@ -179,9 +205,30 @@ export default function ProductsPage() {
 
                 {/* KOLOM KANAN: PREVIEW PRODUCT CARD */}
                 <div className="lg:col-span-5 flex flex-col space-y-5 border-t lg:border-t-0 lg:border-l border-slate-700/50 pt-6 lg:pt-0 lg:pl-8">
+                  
+                  {/* 🟢 REVISI AREA GAMBAR (URL & UPLOAD) */}
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-slate-300">URL Gambar (Opsional)</label>
-                    <input type="text" className="w-full p-3 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all" value={formData.image} onChange={(e) => setFormData({...formData, image: e.target.value})} />
+                    <label className="block text-sm font-medium mb-2 text-slate-300">Gambar Produk</label>
+                    <div className="flex flex-col gap-3">
+                      <input type="text" className="w-full p-3 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all" placeholder="Masukkan URL gambar..." value={formData.image} onChange={(e) => setFormData({...formData, image: e.target.value})} />
+                      
+                      <div className="flex items-center justify-center w-full">
+                        <label className={`w-full flex flex-col items-center px-4 py-4 bg-slate-800/50 text-slate-300 rounded-xl border-2 border-dashed border-slate-600 cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-all ${uploadingImage ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                          {uploadingImage ? (
+                            <span className="text-sm font-medium animate-pulse">⏳ Mengunggah gambar...</span>
+                          ) : (
+                            <div className="flex flex-col items-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 mb-2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                              </svg>
+                              <span className="text-sm font-medium">Unggah File dari Perangkat</span>
+                              <span className="text-xs text-slate-500 mt-1">PNG, JPG, JPEG</span>
+                            </div>
+                          )}
+                          <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploadingImage} />
+                        </label>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex-1">
@@ -218,7 +265,7 @@ export default function ProductsPage() {
               {/* ACTION BUTTONS */}
               <div className="flex justify-end gap-4 pt-6 border-t border-slate-700/50 mt-8">
                 <button type="button" onClick={() => setShowForm(false)} className="px-6 py-3 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800 transition-all">Batal</button>
-                <button type="submit" className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all">
+                <button type="submit" disabled={uploadingImage} className={`px-8 py-3 rounded-xl font-bold text-white transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] ${uploadingImage ? 'bg-slate-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}>
                   {editingProduct ? 'Simpan Perubahan' : 'Tambahkan Produk'}
                 </button>
               </div>

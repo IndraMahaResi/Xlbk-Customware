@@ -17,7 +17,8 @@ export async function middleware(request) {
                       // 🟢 Buka akses Order spesifik (/api/orders/[id]), tapi TETAP KUNCI /api/orders (Data semua order untuk Admin)
                       path.startsWith('/api/settings') || 
                       path.startsWith('/api/hasil-karya') ||
-                      path.startsWith('/api/promo') 
+                      path.startsWith('/api/promo') ||
+                      path.startsWith('/api/contact')
 
   // 2. PROTEKSI HALAMAN DASHBOARD
   if (path.startsWith('/dashboard')) {
