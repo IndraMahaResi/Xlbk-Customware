@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { useDropzone } from 'react-dropzone'
@@ -8,7 +8,8 @@ import Image from 'next/image'
 // 🔥 REVISI: Tambahkan CheckCircleIcon di import ini
 import { InformationCircleIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 
-export default function OrderPage() {
+// 1. UBAH NAMA KOMPONEN UTAMA MENJADI OrderContent
+function OrderContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [products, setProducts] = useState([])
@@ -740,5 +741,21 @@ export default function OrderPage() {
         </div>
       </div>
     </>
+  )
+}
+
+// 2. BUNGKUS DENGAN SUSPENSE UNTUK MENGATASI ERROR BUILD NEXT.JS
+export default function OrderPage() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-400 font-medium animate-pulse">Menyiapkan halaman pemesanan...</p>
+        </div>
+      }
+    >
+      <OrderContent />
+    </Suspense>
   )
 }
