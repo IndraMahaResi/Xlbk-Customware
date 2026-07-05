@@ -141,7 +141,7 @@ export async function GET(request, { params }) {
 
       if (order.shippingFee > 0) {
         doc.text('Biaya Pengiriman', 310, yPos, { align: 'left', width: 130 })
-           .text(`Rp ${order.shippingFee?.toLocaleString('id-ID')}`, 440, yPos, { align: 'right', width: 100 });
+            .text(`Rp ${order.shippingFee?.toLocaleString('id-ID')}`, 440, yPos, { align: 'right', width: 100 });
         yPos += 18;
       }
 
@@ -153,7 +153,7 @@ export async function GET(request, { params }) {
          .text(`Rp ${totalBiaya.toLocaleString('id-ID')}`, 440, yPos, { align: 'right', width: 100 });
       yPos += 30;
 
-      // 🟢 REVISI PENTING: Pembagian Termin yang Informatif dengan Teks Diperbesar
+      // 🟢 REVISI PENTING: Pembagian Termin
       doc.fontSize(10).font('Helvetica-Bold').fillColor(textDark)
          .text('RINCIAN TERMIN PEMBAYARAN:', 310, yPos, { align: 'left', width: 200 });
       yPos += 18;
@@ -164,8 +164,8 @@ export async function GET(request, { params }) {
         let dpColor = textLight;
         
         if (order.paymentStatus === 'VERIFIED' || order.paymentStatus === 'PAID') {
-          // Gunakan updatedAt sebagai tgl DP jika masih VERIFIED, atau createdAt jika tidak valid
-          const dpDate = order.paymentStatus === 'VERIFIED' ? order.updatedAt : order.createdAt;
+          // DP sudah pasti terbayar jika statusnya VERIFIED atau PAID
+          const dpDate = order.createdAt; 
           dpStatus = `Telah Dibayar (Tgl: ${new Date(dpDate).toLocaleDateString('id-ID')})`;
           dpColor = greenSuccess;
         }
@@ -175,7 +175,6 @@ export async function GET(request, { params }) {
            .text(`Rp ${uangMuka.toLocaleString('id-ID')}`, 440, yPos, { align: 'right', width: 100 });
         yPos += 14;
         
-        // Tulisan Status Dibesarkan dan Diberi Warna
         doc.fontSize(9.5).font('Helvetica-Oblique').fillColor(dpColor)
            .text(`(${dpStatus})`, 310, yPos, { align: 'left', width: 200 });
         yPos += 22;
@@ -184,8 +183,10 @@ export async function GET(request, { params }) {
         let pelunasanStatus = 'Belum Dibayar';
         let pelunasanColor = textLight;
 
-        if (order.paymentStatus === 'PAID' && order.paidAt) {
-          pelunasanStatus = `Lunas (Tgl: ${new Date(order.paidAt).toLocaleDateString('id-ID')})`;
+        // 🟢 PERBAIKAN LOGIKA: Hanya butuh status PAID, tidak wajib ada paidAt (menggunakan updatedAt sebagai fallback)
+        if (order.paymentStatus === 'PAID') {
+          const pelunasanDate = order.paidAt || order.updatedAt;
+          pelunasanStatus = `Telah Dibayar Lunas (Tgl: ${new Date(pelunasanDate).toLocaleDateString('id-ID')})`;
           pelunasanColor = greenSuccess;
         }
 
@@ -194,7 +195,6 @@ export async function GET(request, { params }) {
            .text(`Rp ${(totalBiaya - uangMuka).toLocaleString('id-ID')}`, 440, yPos, { align: 'right', width: 100 });
         yPos += 14;
         
-        // Tulisan Status Dibesarkan dan Diberi Warna
         doc.fontSize(9.5).font('Helvetica-Oblique').fillColor(pelunasanColor)
            .text(`(${pelunasanStatus})`, 310, yPos, { align: 'left', width: 200 });
 
@@ -203,8 +203,10 @@ export async function GET(request, { params }) {
         let fullStatus = 'Belum Dibayar';
         let fullColor = textLight;
 
-        if (order.paymentStatus === 'PAID' && order.paidAt) {
-          fullStatus = `Lunas (Tgl: ${new Date(order.paidAt).toLocaleDateString('id-ID')})`;
+        // 🟢 PERBAIKAN LOGIKA JUGA DISINI
+        if (order.paymentStatus === 'PAID') {
+          const fullDate = order.paidAt || order.updatedAt;
+          fullStatus = `Telah Dibayar Lunas (Tgl: ${new Date(fullDate).toLocaleDateString('id-ID')})`;
           fullColor = greenSuccess;
         }
 
@@ -213,7 +215,6 @@ export async function GET(request, { params }) {
            .text(`Rp ${totalBiaya.toLocaleString('id-ID')}`, 440, yPos, { align: 'right', width: 100 });
         yPos += 14;
         
-        // Tulisan Status Dibesarkan dan Diberi Warna
         doc.fontSize(9.5).font('Helvetica-Oblique').fillColor(fullColor)
            .text(`(${fullStatus})`, 310, yPos, { align: 'left', width: 200 });
       }

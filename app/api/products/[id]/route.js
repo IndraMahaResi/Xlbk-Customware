@@ -4,7 +4,8 @@ import { NextResponse } from 'next/server'
 // ================= GET BY ID =================
 export async function GET(request, { params }) {
   try {
-    const { id } = params
+    // 🔥 PERBAIKAN: Tambahkan await pada params
+    const { id } = await params
 
     const product = await prisma.product.findUnique({
       where: { id }
@@ -31,13 +32,15 @@ export async function GET(request, { params }) {
 // ================= UPDATE =================
 export async function PUT(request, { params }) {
   try {
-    const { id } = params
+    // 🔥 PERBAIKAN: Tambahkan await pada params
+    const { id } = await params
     const body = await request.json()
 
-    const { name, price, description, image, category } = body
+    // 🔥 PERBAIKAN: Tambahkan field pendukung sesuai form frontend
+    const { name, price, description, image, category, stock, minOrder, rating, sold } = body
 
     // Validasi dikit biar ga masuk data sampah
-    if (!name || !price || !category) {
+    if (!name || price === undefined || !category) {
       return NextResponse.json(
         { error: 'Name, price, and category are required' },
         { status: 400 }
@@ -51,7 +54,11 @@ export async function PUT(request, { params }) {
         price: Number(price),
         description,
         image,
-        category
+        category,
+        stock,
+        minOrder,
+        rating: rating ? Number(rating) : 5.0,
+        sold
       }
     })
 
@@ -69,7 +76,8 @@ export async function PUT(request, { params }) {
 // ================= DELETE =================
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params
+    // 🔥 PERBAIKAN: Tambahkan await pada params
+    const { id } = await params
 
     await prisma.product.delete({
       where: { id }

@@ -54,16 +54,16 @@ export default function PelunasanPage() {
     }
   }
 
-  // 🟢 Fungsi untuk route ke halaman pembayaran
+  // 🟢 REVISI: Pastikan parameter URL lengkap saat melempar ke halaman payment
   const handleProceedToPayment = (actionType) => {
     if (actionType === 'PELUNASAN') {
-      router.push(`/payment/${foundOrder.id}?type=pelunasan`)
+      // Bawa param type=pelunasan agar PaymentPage tahu ini tagihan kedua
+      router.push(`/payment/${foundOrder.id}?type=pelunasan&total=${foundOrder.total}&payType=DP`)
     } else {
-      router.push(`/payment/${foundOrder.id}`) // Untuk bayar awal (DP maupun Full)
+      router.push(`/payment/${foundOrder.id}?total=${foundOrder.total}&payType=${foundOrder.paymentType}`)
     }
   }
 
-  // 🟢 FUNGSI DOWNLOAD INVOICE PDF LANGSUNG
   const generateInvoice = async () => {
     if (!foundOrder) return;
     try {
@@ -177,7 +177,6 @@ export default function PelunasanPage() {
                         {foundOrder.paymentType} PAYMENT
                       </span>
                       <br/>
-                      {/* 🟢 BADGE STATUS */}
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${
                           foundOrder.paymentStatus === 'PAID' 
                             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
@@ -192,7 +191,6 @@ export default function PelunasanPage() {
                             : foundOrder.paymentStatus}
                       </span>
                     </div>
-                    {/* 🟢 TOMBOL UNDUH INVOICE */}
                     <button
                       onClick={generateInvoice}
                       className="inline-flex items-center gap-2 px-4 py-2 mt-2 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 hover:border-slate-600 rounded-xl text-sm font-medium transition-all"
@@ -220,28 +218,19 @@ export default function PelunasanPage() {
                   </div>
                 </div>
 
-                {/* 🟢 4 KONDISI LOGIKA UTAMA (SANGAT AKURAT) */}
                 {foundOrder.paymentStatus === 'PAID' ? (
-                  
-                  /* KONDISI 1: SUDAH LUNAS SEPENUHNYA */
                   <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 text-center">
                     <CheckCircleIcon className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
                     <h3 className="text-lg font-bold text-emerald-400 mb-1">Tagihan Sudah Lunas</h3>
                     <p className="text-slate-400 text-sm">Pesanan ini tidak memiliki sisa tagihan yang harus dibayarkan.</p>
                   </div>
-                  
                 ) : foundOrder.paymentType === 'FULL' && foundOrder.paymentStatus === 'VERIFIED' ? (
-                  
-                  /* KONDISI 2: FULL PAYMENT TAPI SEDANG DIVERIFIKASI (BUKTI SUDAH DIUPLOAD) */
                   <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-6 text-center">
                     <ArrowPathIcon className="w-12 h-12 text-blue-400 mx-auto mb-3 animate-spin" />
                     <h3 className="text-lg font-bold text-blue-400 mb-1">Menunggu Konfirmasi Admin</h3>
                     <p className="text-slate-400 text-sm">Bukti pembayaran Anda sudah kami terima dan sedang dalam pengecekan.</p>
                   </div>
-
                 ) : foundOrder.paymentType === 'DP' && foundOrder.paymentStatus === 'VERIFIED' ? (
-                  
-                  /* KONDISI 3: PEMBAYARAN DP SUDAH DITERIMA -> TAMPILKAN TAGIHAN PELUNASAN */
                   <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-6 text-center shadow-[0_0_30px_rgba(245,158,11,0.1)] relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -258,10 +247,7 @@ export default function PelunasanPage() {
                       </button>
                     </div>
                   </div>
-
                 ) : (
-                  
-                  /* KONDISI 4: BELUM BAYAR SAMA SEKALI (UNPAID/PENDING) UNTUK FULL MAUPUN DP AWAL */
                   <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-6 text-center shadow-[0_0_30px_rgba(245,158,11,0.1)] relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -282,11 +268,9 @@ export default function PelunasanPage() {
                       </button>
                     </div>
                   </div>
-
                 )}
               </div>
             )}
-
           </div>
         </div>
       </div>
