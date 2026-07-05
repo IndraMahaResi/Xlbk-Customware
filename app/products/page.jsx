@@ -1,10 +1,11 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import ProductCard from '@/components/ProductCard'
 
-export default function Products() {
+// 1. PISAHKAN LOGIKA UTAMA KE DALAM KOMPONEN BARU
+function ProductsContent() {
   const searchParams = useSearchParams()
   const initialCategory = searchParams.get('category') || 'ALL'
 
@@ -134,5 +135,21 @@ export default function Products() {
         </div>
       </div>
     </>
+  )
+}
+
+// 2. BUNGKUS DENGAN SUSPENSE
+export default function Products() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-400 font-medium animate-pulse">Menyiapkan katalog produk...</p>
+        </div>
+      }
+    >
+      <ProductsContent />
+    </Suspense>
   )
 }
