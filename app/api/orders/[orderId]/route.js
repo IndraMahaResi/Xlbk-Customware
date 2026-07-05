@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 // =================================================================
 async function sendWhatsAppNotification(phone, name, invoice, status, trackingNumber = null) {
   // Token Fonnte Anda
-  const FONNTE_TOKEN = 'dn5ZzvVBzcTwuQiPbmHS' 
+  const FONNTE_TOKEN = 'ZNZgLYWzBgFytk2kVqe9' 
   
   // Format nomor HP (pastikan diawali 62)
   let formattedPhone = phone || '';
