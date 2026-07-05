@@ -1,6 +1,7 @@
 'use client'
 export const dynamic = "force-dynamic";
-import { useState } from 'react'
+
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
@@ -10,7 +11,8 @@ import {
   ArrowRightOnRectangleIcon 
 } from '@heroicons/react/24/outline'
 
-export default function Login() {
+// 1. Pisahkan seluruh logika dan UI ke dalam komponen baru
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/dashboard'
@@ -141,5 +143,20 @@ export default function Login() {
         <p className="text-xs text-slate-600 font-medium tracking-widest uppercase">XLBK Customwear © {new Date().getFullYear()}</p>
       </div>
     </div>
+  )
+}
+
+// 2. Bungkus komponen utama dengan Suspense untuk memperbaiki error build Next.js
+export default function Login() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   )
 }
